@@ -48,7 +48,7 @@ namespace Motive.Core
         /// Checks custom paths, bundled paths, system PATH, and global npm paths.
         /// </summary>
         /// <returns>A tuple with the resolved absolute path and an error message if not found.</returns>
-        public (string? Path, string? Error) ResolveBinary()
+        private (string? Path, string? Error) InternalResolveBinary()
         {
             // 1. Check custom path if provided
             if (!string.IsNullOrWhiteSpace(_customSourcePath) && File.Exists(_customSourcePath))
@@ -151,6 +151,46 @@ namespace Motive.Core
             }
 
             return (null, "OpenCode CLI not found. Install via npm: npm install -g opencode-ai");
+        }
+
+        /// <summary>
+        /// Public wrapper to resolve binary and resolve cmd wrappers into native exe files.
+        /// </summary>
+        public (string? Path, string? Error) ResolveBinary()
+        {
+            var (path, error) = InternalResolveBinary();
+            if (path != null)
+            {
+                return (GetDirectExePath(path), null);
+            }
+            return (null, error);
+        }
+
+        private string GetDirectExePath(string cmdPath)
+        {
+            if (string.IsNullOrEmpty(cmdPath) || !cmdPath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase))
+            {
+                return cmdPath;
+            }
+
+            var dir = Path.GetDirectoryName(cmdPath);
+            if (string.IsNullOrEmpty(dir)) return cmdPath;
+
+            var candidates = new[]
+            {
+                Path.Combine(dir, "node_modules", "opencode-ai", "bin", "opencode.exe"),
+                Path.Combine(dir, "node_modules", "opencode-ai", "node_modules", "opencode-win32-x64", "bin", "opencode.exe")
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (File.Exists(candidate) && IsValidBinary(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return cmdPath;
         }
 
         /// <summary>
