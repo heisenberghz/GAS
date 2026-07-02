@@ -69,3 +69,20 @@ Scripts/browser-use-sidecar/.venv/
 # Misc Stuff
 .acf/
 tasks-table.md
+
+# .NET / Visual Studio
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Log]/
+.vs/
+*.user
+*.userossc
+*.suo
+*.userprefs
+*.sln.docstates
+
