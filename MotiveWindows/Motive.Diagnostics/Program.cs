@@ -1,20 +1,130 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Motive.Core;
+using Motive.Core.Data;
+using Motive.Core.Models;
 
 namespace Motive.Diagnostics
 {
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     class Program
     {
         static async Task Main(string[] args)
         {
             Console.WriteLine("==================================================");
-            Console.WriteLine("Motive Windows Port - Phase 1 Diagnostics Launcher");
+            Console.WriteLine("Motive Windows Port - Diagnostics Launcher");
             Console.WriteLine("==================================================");
 
-            // 1. Resolve Binary
-            Console.WriteLine("\n[1/3] Resolving OpenCode CLI Binary...");
+            // ==========================================
+            // PHASE 2 DIAGNOSTICS: SECURE STORAGE & DB
+            // ==========================================
+            Console.WriteLine("\n[Phase 2] Testing Credential Store (DPAPI)...");
+            try
+            {
+                var store = new CredentialStore();
+                store.Write("TestApiKey", "sk-anthropic-xyz-12345");
+                var key = store.Read("TestApiKey");
+                if (key == "sk-anthropic-xyz-12345")
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Success: Credential Store decrypted key correctly!");
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Error: Credential key mismatch!");
+                    Console.ResetColor();
+                }
+                store.Delete("TestApiKey");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Credential Store failed: {ex.Message}");
+                Console.ResetColor();
+            }
+
+            Console.WriteLine("\n[Phase 2] Testing Database Persistence (EF Core SQLite)...");
+            try
+            {
+                using (var db = new MotiveDbContext())
+                {
+                    // Ensure database and schema are created
+                    db.Database.EnsureCreated();
+                    Console.WriteLine("Database file initialized successfully.");
+
+                    // Clear old diagnostics data to run cleanly
+                    db.Sessions.RemoveRange(db.Sessions);
+                    db.SaveChanges();
+
+                    // Insert Session & LogEntries
+                    var session = new Session
+                    {
+                        Intent = "Refactor Motive build scripts",
+                        Status = SessionStatus.Running,
+                        ProjectPath = @"D:\motive windows"
+                    };
+
+                    session.Logs.Add(new LogEntry { RawJson = "{}", Kind = "ProcessInfo" });
+                    session.Logs.Add(new LogEntry { RawJson = "{}", Kind = "ToolCall" });
+
+                    db.Sessions.Add(session);
+                    db.SaveChanges();
+
+                    Console.WriteLine("Inserted test Session and LogEntries.");
+
+                    // Query and verify
+                    var retrieved = await db.Sessions
+                        .Include(s => s.Logs)
+                        .FirstOrDefaultAsync(s => s.Id == session.Id);
+
+                    if (retrieved != null && retrieved.Logs.Count == 2)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine($"Success: Database retrieved Session (Id={retrieved.Id}) with {retrieved.Logs.Count} logs.");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Error: Failed to retrieve session or logs.");
+                        Console.ResetColor();
+                    }
+
+                    // Cascade delete test
+                    db.Sessions.Remove(session);
+                    db.SaveChanges();
+
+                    var logCount = await db.LogEntries.CountAsync();
+                    if (logCount == 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("Success: Database Cascade Delete verified (all logs wiped)!");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Error: Cascade delete failed, {logCount} logs remain.");
+                        Console.ResetColor();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Database test failed: {ex.Message}");
+                Console.ResetColor();
+            }
+            Console.WriteLine("==================================================");
+
+            // ==========================================
+            // PHASE 1 DIAGNOSTICS: PROCESS HOSTING
+            // ==========================================
+            Console.WriteLine("\n[Phase 1] Resolving OpenCode CLI Binary...");
             var binaryManager = new BinaryManager();
             var (binaryPath, error) = binaryManager.ResolveBinary();
 
@@ -37,8 +147,7 @@ namespace Motive.Diagnostics
             Console.WriteLine($"Success: Found binary at:\n -> {binaryPath}");
             Console.ResetColor();
 
-            // 2. Start OpenCodeServer
-            Console.WriteLine("\n[2/3] Starting OpenCode Background Server...");
+            Console.WriteLine("\n[Phase 1] Starting OpenCode Background Server...");
             using (var server = new OpenCodeServer())
             {
                 server.ServerUrlDetected += (url) =>
@@ -78,8 +187,7 @@ namespace Motive.Diagnostics
                     Console.WriteLine($"\nServer is running at: {serverUrl}");
                     Console.ResetColor();
 
-                    // 3. Perform Health Check
-                    Console.WriteLine("\n[3/3] Performing Health Check...");
+                    Console.WriteLine("\n[Phase 1] Performing Health Check...");
                     var isHealthy = await server.CheckHealthAsync();
                     if (isHealthy)
                     {
