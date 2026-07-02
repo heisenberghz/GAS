@@ -1,0 +1,71 @@
+# Xcode
+build/
+release/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+*.xcworkspace
+!*.xcodeproj/*.xcworkspace
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# CocoaPods / Carthage
+Pods/
+Carthage/Build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+*.swp
+*.swo
+*~
+
+# IDE & Editor specific
+.idea/
+.cursorrules
+.vscode/
+.cursor/
+.sourcekit-lsp/
+buildServer.json
+.claude/
+
+# App Specific binaries & Sensitive info
+Motive/Resources/opencode
+*.p12
+*.cer
+*.mobileprovision
+AuthKey_*.p8
+
+# Build & Debug
+*.dSYM.zip
+*.dSYM
+*.ipa
+*.xcarchive
+build.log
+dist/
+
+# Scripts & Environment
+.env
+.env.local
+Scripts/browser-use-sidecar/.venv/
+
+# Misc Stuff
+.acf/
+tasks-table.md

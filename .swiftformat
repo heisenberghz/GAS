@@ -1,0 +1,9 @@
+--swiftversion 6.0
+--indent 4
+--trimwhitespace always
+--stripunusedargs closure-only
+--maxwidth 200
+--wraparguments before-first
+--wrapcollections before-first
+--disable redundantSelf,trailingCommas,blankLinesAtStartOfScope
+--exclude Build,DerivedData,Pods,build,.build,Motive.xcodeproj

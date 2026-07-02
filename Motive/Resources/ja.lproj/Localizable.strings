@@ -1,0 +1,494 @@
+/* 
+  Localizable.strings (日本語)
+  Motive
+*/
+
+// MARK: - Common
+"app.name" = "Motive";
+"common.cancel" = "キャンセル";
+"common.submit" = "送信";
+"common.save" = "保存";
+"common.delete" = "削除";
+"common.done" = "完了";
+"common.allow" = "許可";
+"common.deny" = "拒否";
+"common.error" = "エラー";
+"common.warning" = "警告";
+"common.ok" = "OK";
+"common.unsaved_changes" = "未保存の変更";
+"common.show" = "表示";
+"common.hide" = "非表示";
+"common.expand" = "展開";
+"common.collapse" = "折りたたむ";
+"common.show_less" = "折りたたむ";
+"common.show_more_lines" = "さらに%d行を表示";
+"common.loading" = "読み込み中...";
+"common.install" = "インストール";
+"common.edit" = "編集";
+"common.reject" = "拒否";
+"common.allow_once" = "一度だけ許可";
+"common.always_allow" = "常に許可";
+
+// MARK: - Command Bar
+"commandbar.placeholder" = "何をしましょうか？";
+"commandbar.submit" = "送信";
+"commandbar.settings" = "設定";
+"commandbar.run" = "実行";
+"commandbar.close" = "閉じる";
+"commandbar.select" = "選択";
+"commandbar.complete" = "補完";
+"commandbar.navigate" = "移動";
+"commandbar.back" = "戻る";
+"commandbar.open" = "開く";
+"commandbar.delete" = "削除";
+"commandbar.new" = "新規";
+"commandbar.commands" = "コマンド";
+"commandbar.stop" = "停止";
+"commandbar.drawer" = "詳細";
+"commandbar.send" = "送信";
+"commandbar.retry" = "再試行";
+"commandbar.cancel" = "キャンセル";
+"commandbar.running" = "実行中";
+"commandbar.new_task" = "新規タスク";
+"commandbar.completed" = "完了";
+"commandbar.details" = "詳細";
+"commandbar.error" = "エラー";
+"commandbar.dismiss" = "閉じる";
+"commandbar.ready" = "準備完了";
+"commandbar.type_request" = "以下にリクエストを入力";
+"commandbar.starting" = "起動中…";
+"commandbar.current" = "現在";
+"commandbar.no_sessions" = "セッションはまだありません";
+"commandbar.no_sessions.desc" = "会話履歴がここに表示されます";
+"commandbar.modified_files" = "変更されたファイル：";
+"commandbar.follow_up" = "フォローアップ…";
+"commandbar.tools_executed" = "%d個のツールを実行";
+"commandbar.task_finished" = "タスク完了";
+"commandbar.more_files" = "+%dファイル";
+"commandbar.tab" = "Tab";
+"commandbar.search_sessions" = "セッションを検索...";
+"commandbar.type_command" = "コマンドを入力...";
+
+// MARK: - Settings
+"settings.title" = "設定";
+"settings.star_on_github" = "GitHubでスターを付ける";
+
+// Settings Tabs
+"settings.tab.general" = "一般";
+"settings.tab.general.subtitle" = "起動、外観、キーボードショートカット";
+"settings.tab.ai_provider" = "AIプロバイダー";
+"settings.tab.ai_provider.subtitle" = "AIプロバイダーとAPI認証情報の設定";
+"settings.tab.usage" = "使用量";
+"settings.tab.usage.subtitle" = "トークン使用量と料金の概要";
+"settings.tab.skills" = "スキル";
+"settings.tab.skills.subtitle" = "スキルとツール連携の管理";
+"settings.tab.memory" = "メモリ";
+"settings.tab.memory.subtitle" = "永続メモリとナレッジベース";
+"settings.tab.about.subtitle" = "アプリ情報とコンポーネントのステータス";
+"settings.tab.permissions" = "権限";
+"settings.tab.permissions.subtitle" = "ファイル操作ポリシーと安全ルール";
+"settings.tab.advanced" = "詳細";
+"settings.tab.advanced.subtitle" = "バイナリパスとデバッグオプション";
+
+// General Settings
+"settings.general.startup" = "起動";
+"settings.general.launch_at_login" = "ログイン時に起動";
+"settings.general.launch_at_login.desc" = "ログイン時にMotiveを自動起動";
+"settings.general.keyboard" = "キーボード";
+"settings.general.global_hotkey" = "グローバルホットキー";
+"settings.general.global_hotkey.desc" = "コマンドバーを呼び出す";
+"settings.general.appearance" = "外観";
+"settings.general.theme" = "テーマ";
+"settings.general.theme.desc" = "ライト、ダーク、またはシステムに従う";
+"settings.general.theme.system" = "システム";
+"settings.general.theme.light" = "ライト";
+"settings.general.theme.dark" = "ダーク";
+"settings.general.command_bar_position" = "位置";
+"settings.general.command_bar_position.desc" = "コマンドバーを表示する位置を選択";
+"settings.general.glass_effect" = "ガラス効果";
+"settings.general.glass_effect.desc" = "クリアまたはティントガラスを選択";
+"settings.general.glass_effect.clear" = "クリア";
+"settings.general.glass_effect.tinted" = "ティント";
+"settings.general.position.center" = "中央";
+"settings.general.position.top_leading" = "左上";
+"settings.general.position.top_middle" = "上中央";
+"settings.general.position.top_trailing" = "右上";
+"settings.general.position.bottom_leading" = "左下";
+"settings.general.position.bottom_middle" = "下中央";
+"settings.general.position.bottom_trailing" = "右下";
+
+// Language Settings
+"settings.general.language" = "言語";
+"settings.general.language.desc" = "お好みの言語を選択";
+"settings.general.language.system" = "システム";
+"settings.general.language.english" = "English";
+"settings.general.language.chinese" = "简体中文";
+"settings.general.language.japanese" = "日本語";
+"settings.general.language.restart_required" = "再起動が必要です";
+"settings.general.restart_now" = "今すぐ再起動";
+
+// AI Provider Settings
+"settings.provider.select" = "プロバイダーを選択";
+"settings.provider.api_key" = "APIキー";
+"settings.provider.api_key.placeholder" = "APIキーを入力";
+"settings.provider.api_key.configured" = "設定済み";
+"settings.provider.base_url" = "ベースURL";
+"settings.provider.base_url.placeholder" = "オプション：カスタムAPIエンドポイント";
+"settings.provider.model_name" = "モデル名";
+"settings.provider.model_name.placeholder" = "オプション：デフォルトモデルを上書き";
+
+// Permission Settings
+"settings.permissions.file_operations" = "ファイル操作";
+"settings.permissions.risk_levels" = "リスクレベル";
+"settings.permissions.reset_to_defaults" = "デフォルトに戻す";
+"settings.permissions.policy.always_allow" = "常に許可";
+"settings.permissions.policy.always_ask" = "常に確認";
+"settings.permissions.policy.ask_once" = "一度だけ確認";
+"settings.permissions.policy.always_deny" = "常に拒否";
+
+// File Operations
+"settings.permissions.op.create" = "ファイル作成";
+"settings.permissions.op.create.desc" = "新しいファイルを作成";
+"settings.permissions.op.delete" = "ファイル削除";
+"settings.permissions.op.delete.desc" = "ファイルを完全に削除";
+"settings.permissions.op.modify" = "内容変更";
+"settings.permissions.op.modify.desc" = "ファイル内容を編集";
+"settings.permissions.op.overwrite" = "ファイル上書き";
+"settings.permissions.op.overwrite.desc" = "ファイル全体を置換";
+"settings.permissions.op.rename" = "名前変更";
+"settings.permissions.op.rename.desc" = "ファイル名を変更";
+"settings.permissions.op.move" = "ファイル移動";
+"settings.permissions.op.move.desc" = "別の場所に移動";
+"settings.permissions.op.read_binary" = "バイナリ読み取り";
+"settings.permissions.op.read_binary.desc" = "バイナリファイルを読み取り";
+"settings.permissions.op.execute" = "スクリプト実行";
+"settings.permissions.op.execute.desc" = "スクリプトやプログラムを実行";
+
+// Risk Levels
+"settings.permissions.risk.low" = "低";
+"settings.permissions.risk.low.desc" = "ファイル作成などの安全な操作";
+"settings.permissions.risk.medium" = "中";
+"settings.permissions.risk.medium.desc" = "名前変更や移動などの再編成";
+"settings.permissions.risk.high" = "高";
+"settings.permissions.risk.high.desc" = "上書きなど潜在的に破壊的な操作";
+"settings.permissions.risk.critical" = "重大";
+"settings.permissions.risk.critical.desc" = "削除など元に戻せない操作";
+
+// Browser Automation
+"settings.browser.title" = "ブラウザ自動化";
+"settings.browser.enable" = "ブラウザ制御を有効化";
+"settings.browser.enable.desc" = "バンドルされたサイドカーを使用したAI駆動のブラウザ自動化";
+"settings.browser.show_window" = "ブラウザウィンドウを表示";
+"settings.browser.show_window.desc" = "自動化中にブラウザを表示（ヘッドモード）";
+"settings.browser.agent_mode" = "エージェントモード（複雑なタスク向け）";
+"settings.browser.agent_provider" = "エージェントLLMプロバイダー";
+"settings.browser.agent_provider.desc" = "自律ブラウザタスク用のLLM";
+"settings.browser.api_key.desc" = "エージェントモード（自律タスク）に必須";
+"settings.browser.base_url" = "ベースURL（オプション）";
+"settings.browser.base_url.desc" = "カスタムAPIエンドポイント";
+"settings.browser.status" = "ステータス";
+"settings.browser.status.ready" = "準備完了 - サイドカーバイナリ利用可能";
+"settings.browser.status.not_found" = "ビルドが必要 - Scripts/browser-use-sidecar/build.sh を実行";
+"settings.browser.status.disabled" = "ブラウザ自動化は無効です";
+"settings.browser.not_set" = "未設定";
+
+// Persona
+"settings.tab.persona" = "ペルソナ";
+"settings.tab.persona.subtitle" = "エージェントの個性とワークスペースファイル";
+"settings.persona.agent_identity" = "エージェントの個性";
+"settings.persona.workspace_files" = "ワークスペースファイル";
+"settings.persona.name" = "名前";
+"settings.persona.name.desc" = "どう呼ばれたいですか？";
+"settings.persona.emoji" = "絵文字";
+"settings.persona.emoji.desc" = "ステータスバーのアイコン";
+"settings.persona.creature" = "生き物";
+"settings.persona.creature.desc" = "どんな存在ですか？";
+"settings.persona.vibe" = "雰囲気";
+"settings.persona.vibe.desc" = "どんな印象を与えますか？";
+"settings.persona.open_workspace" = "ワークスペース";
+"settings.persona.open_workspace.desc" = "~/.motive/";
+"settings.persona.open_in_finder" = "Finderで開く";
+"settings.persona.edit_soul" = "ソウル";
+"settings.persona.edit_soul.desc" = "性格と価値観";
+"settings.persona.edit_user" = "ユーザープロフィール";
+"settings.persona.edit_user.desc" = "あなたの情報";
+"settings.persona.edit" = "編集";
+"settings.persona.save_and_apply" = "保存して適用";
+"settings.persona.open_emoji_picker" = "絵文字を選択";
+"settings.persona.tab.identity" = "身元";
+"settings.persona.tab.soul" = "魂";
+"settings.persona.tab.user" = "情報";
+
+// Skills
+"settings.skills.system" = "スキルシステム";
+"settings.skills.enable" = "スキルを有効化";
+"settings.skills.enable.desc" = "バンドル、管理、ワークスペースのスキルを読み込み";
+"settings.skills.list" = "インストール済みスキル";
+"settings.skills.eligible" = "利用可能";
+"settings.skills.ineligible" = "利用不可";
+"settings.skills.refresh" = "スキルを更新";
+"settings.skills.no_skills" = "スキルがインストールされていません";
+"settings.skills.no_skills.desc" = "スキルが利用可能になるとここに表示されます";
+
+// Advanced Settings
+"settings.advanced.opencode_binary" = "OpenCodeバイナリ";
+"settings.advanced.binary_status" = "バイナリ状態";
+"settings.advanced.binary.bundled" = "内蔵バイナリを使用";
+"settings.advanced.binary.custom" = "カスタムバイナリを使用";
+"settings.advanced.binary.not_found" = "バイナリが見つかりません";
+"settings.advanced.import_binary" = "バイナリをインポート";
+"settings.advanced.importing" = "インポート中...";
+"settings.advanced.select_binary" = "バイナリを選択";
+"settings.advanced.auto_detect" = "自動検出";
+"settings.advanced.source_path" = "ソースパス";
+"settings.advanced.diagnostics" = "診断";
+"settings.advanced.debug_mode" = "デバッグモード";
+"settings.advanced.debug_mode.desc" = "詳細ログを有効化";
+"settings.advanced.about" = "このアプリについて";
+"settings.advanced.version" = "バージョン";
+"settings.advanced.build" = "ビルド";
+"settings.advanced.not_configured" = "未設定";
+
+// Provider Config
+"settings.provider.provider" = "プロバイダー";
+"settings.provider.configuration" = "設定";
+"settings.provider.ollama_host" = "Ollamaホスト";
+"settings.provider.default_endpoint" = "空欄でデフォルトを使用";
+"settings.provider.model" = "モデル";
+"settings.provider.save_restart" = "保存して再起動";
+"settings.provider.agent_restarted" = "エージェントを再起動しました";
+
+// Hotkey Recorder
+"settings.hotkey.press_keys" = "キーを押してください...";
+"settings.hotkey.click_to_record" = "クリックして録音";
+
+// Trust Level
+"settings.permissions.trust.careful" = "慎重";
+"settings.permissions.trust.careful.desc" = "ファイル編集とシェルコマンドの前に確認";
+"settings.permissions.trust.balanced" = "バランス";
+"settings.permissions.trust.balanced.desc" = "編集は自動承認、未知のコマンドは確認";
+"settings.permissions.trust.yolo" = "YOLO";
+"settings.permissions.trust.yolo.desc" = "すべての操作を許可（危険な操作を除く）";
+
+// Permission Policy
+"settings.permissions.trust_level" = "信頼レベル";
+"settings.permissions.trust_all_ops" = "すべての操作が承認なしで実行されます。ご注意ください。";
+"settings.permissions.add_rule" = "ルールを追加...";
+"settings.permissions.add_rule_for" = "%@ のルールを追加";
+"settings.permissions.pattern" = "パターン";
+"settings.permissions.action" = "アクション";
+"settings.permissions.description_optional" = "説明（任意）";
+"settings.permissions.what_rule_does" = "このルールの説明";
+
+// Skills Detail
+"settings.skills.search" = "検索...";
+"settings.skills.refresh_a11y" = "スキルを更新";
+"settings.skills.loading" = "読み込み中...";
+"settings.skills.no_match" = "一致なし";
+"settings.skills.select" = "スキルを選択";
+"settings.skills.unable_to_load" = "SKILL.mdを読み込めません";
+"settings.skills.missing_reqs" = "不足している要件";
+"settings.skills.enter_api_key" = "APIキーを入力...";
+"settings.skills.guide" = "スキルガイド";
+"settings.skills.blocked" = "ブロック済み";
+"settings.skills.disabled" = "無効";
+"settings.skills.enabled" = "有効";
+"settings.skills.restart_pending" = "スキルの変更は現在のタスク完了後に適用されます。";
+
+// Memory
+"settings.memory.system" = "メモリシステム";
+"settings.memory.enable" = "メモリを有効化";
+"settings.memory.enable.desc" = "motive-memory プラグインを使ってセッション間でメモリを保持します";
+"settings.memory.index_status" = "インデックス状態";
+"settings.memory.indexed_files" = "インデックス済みファイル";
+"settings.memory.indexed_files.desc" = "メモリインデックス内のファイル数";
+"settings.memory.last_sync" = "最終同期";
+"settings.memory.rebuild_index" = "インデックス再構築";
+"settings.memory.rebuild_index.desc" = "すべてのメモリファイルを再インデックスします";
+"settings.memory.rebuild" = "再構築";
+"settings.memory.file_section" = "MEMORY.md";
+"settings.memory.file.desc" = "長期記憶ファイル";
+"settings.memory.no_memories" = "まだメモリはありません。";
+"settings.memory.never" = "未実行";
+"settings.memory.not_indexed" = "未インデックス";
+"settings.memory.plugin_status" = "プラグイン状態";
+"settings.memory.plugin_status.desc" = "motive-memory ツールの実行時可用性";
+"settings.memory.plugin_available" = "利用可能";
+"settings.memory.plugin_missing" = "プラグイン未検出";
+
+// About
+"settings.about.powered_by" = "技術提供";
+"settings.about.all_rights_reserved" = "© 2024-2026 Velvet. All rights reserved.";
+"settings.advanced.actions" = "アクション";
+"settings.search.prompt" = "設定を検索";
+"settings.a11y.open_settings_hint" = "%@ の設定を開く";
+
+// Scheduled Tasks
+"settings.tab.scheduled_tasks" = "スケジュールタスク";
+"settings.tab.scheduled_tasks.subtitle" = "ランタイムの定期プロンプトを設定";
+"settings.scheduled_tasks.runtime_scheduler" = "ランタイムスケジューラ";
+"settings.scheduled_tasks.scope" = "範囲";
+"settings.scheduled_tasks.scope.desc" = "スケジュールタスクは Motive 実行中のみ動作します。";
+"settings.scheduled_tasks.in_app_only" = "アプリ内のみ";
+"settings.scheduled_tasks.section" = "スケジュールタスク";
+"settings.scheduled_tasks.no_tasks" = "タスクはまだありません";
+"settings.scheduled_tasks.no_tasks.desc" = "最初のスケジュールタスクを作成してください。";
+"settings.scheduled_tasks.new_task" = "新規タスク";
+"settings.scheduled_tasks.refresh" = "更新";
+"settings.scheduled_tasks.run_now" = "今すぐ実行";
+"settings.scheduled_tasks.not_scheduled" = "未スケジュール";
+"settings.scheduled_tasks.never_run" = "未実行";
+"settings.scheduled_tasks.summary" = "次回: %@ ・ 前回: %@";
+"settings.scheduled_tasks.editor.new" = "新しいスケジュールタスク";
+"settings.scheduled_tasks.editor.edit" = "スケジュールタスクを編集";
+"settings.scheduled_tasks.task_name" = "タスク名";
+"settings.scheduled_tasks.prompt" = "プロンプト";
+"settings.scheduled_tasks.working_directory_optional" = "作業ディレクトリ（任意）";
+"settings.scheduled_tasks.agent_optional" = "エージェント（任意）";
+"settings.scheduled_tasks.schedule_type" = "スケジュール種別";
+"settings.scheduled_tasks.schedule.once" = "一回";
+"settings.scheduled_tasks.schedule.interval" = "間隔";
+"settings.scheduled_tasks.schedule.daily" = "毎日";
+"settings.scheduled_tasks.schedule.weekly" = "毎週";
+"settings.scheduled_tasks.schedule.cron" = "Cron";
+"settings.scheduled_tasks.enabled" = "有効";
+"settings.scheduled_tasks.run_at" = "実行日時";
+"settings.scheduled_tasks.interval_seconds" = "間隔秒数（>=60）";
+"settings.scheduled_tasks.time" = "時刻";
+"settings.scheduled_tasks.weekday" = "曜日";
+"settings.scheduled_tasks.cron_expression" = "Cron（分 時 日 月 曜日）";
+"settings.scheduled_tasks.next_run" = "次回実行: %@";
+"settings.scheduled_tasks.next_run_unavailable" = "次回実行: 利用不可";
+"settings.scheduled_tasks.error.task_name_required" = "タスク名は必須です。";
+"settings.scheduled_tasks.error.prompt_required" = "プロンプトは必須です。";
+"settings.scheduled_tasks.error.interval_minimum" = "間隔は60秒以上である必要があります。";
+
+// MARK: - Drawer
+"drawer.new_session" = "新規セッション";
+"drawer.new_chat" = "新しいチャット";
+"drawer.conversation" = "会話";
+"drawer.thinking" = "考え中";
+"drawer.processing" = "処理中";
+"drawer.completed" = "完了";
+"drawer.failed" = "失敗";
+"drawer.interrupted" = "中断";
+"drawer.running" = "実行中";
+"drawer.stop" = "停止";
+"drawer.close" = "閉じる";
+"drawer.input.placeholder" = "フォローアップを送信...";
+"drawer.message.placeholder" = "メッセージ...";
+"drawer.start_conversation" = "会話を始める";
+"drawer.start_hint" = "下に入力するか⌥Spaceを押して\nコマンドバーを開く";
+"drawer.history" = "履歴";
+"drawer.no_history" = "履歴はまだありません";
+"drawer.assistant" = "アシスタント";
+"drawer.tool" = "ツール";
+"drawer.tip" = "ヒント：上のタイトルをクリックしてセッションを切り替え";
+"drawer.tasks" = "タスク";
+"drawer.changes" = "変更";
+"drawer.context_help" = "現在のコンテキストサイズ";
+"drawer.show_output" = "出力を表示";
+"drawer.hide_output" = "出力を非表示";
+
+// MARK: - Permission Request
+"permission.file" = "ファイル権限";
+"permission.question" = "質問";
+"permission.allow_once" = "許可";
+"permission.deny_once" = "拒否";
+"permission.required" = "権限が必要です";
+"permission.label" = "権限：";
+"permission.path" = "パス：";
+"permission.paths" = "パス：";
+"permission.type_response" = "回答を入力...";
+"permission.type_answer" = "回答を入力...";
+"permission.preview_changes" = "変更をプレビュー";
+
+// MARK: - Alerts
+"alert.delete_session_title" = "このセッションを削除しますか？";
+"alert.delete_session_message" = "「%@」を完全に削除します";
+
+// MARK: - Usage
+"usage.token_usage" = "トークン使用量";
+"usage.no_data" = "使用データはまだありません。";
+"usage.cumulative" = "全セッションの累計です。";
+"usage.cost_reported" = "コストはOpenCodeから報告されます。";
+"usage.reset" = "使用量をリセット";
+"usage.input" = "入力";
+"usage.output" = "出力";
+"usage.reasoning" = "推論";
+"usage.cache_read" = "キャッシュ読取";
+"usage.cache_write" = "キャッシュ書込";
+
+// MARK: - Time
+"time.just_now" = "たった今";
+"time.minutes_ago" = "%d分前";
+"time.hours_ago" = "%d時間前";
+"time.days_ago" = "%d日前";
+
+// MARK: - Status Bar
+"statusbar.idle" = "Motive";
+"statusbar.reasoning" = "考え中...";
+"statusbar.executing" = "実行中...";
+"statusbar.command_bar" = "コマンドバー";
+"statusbar.settings" = "設定";
+"statusbar.quit" = "終了";
+
+// MARK: - Errors
+"error.no_api_key" = "APIキーが設定されていません";
+"error.invalid_config" = "設定が無効です";
+"error.binary_not_found" = "OpenCodeバイナリが見つかりません";
+"error.connection_failed" = "接続に失敗しました";
+
+// MARK: - Onboarding
+// Welcome
+"onboarding.welcome.title" = "Motiveへようこそ";
+"onboarding.welcome.subtitle" = "バックグラウンドで動作するパーソナルAIアシスタント。待つ必要はありません。";
+"onboarding.welcome.get_started" = "始める";
+
+// AI Provider
+"onboarding.ai_provider.title" = "AIプロバイダーを設定";
+"onboarding.ai_provider.subtitle" = "AIプロバイダーを選択し、APIキーを入力してください。";
+
+// Accessibility
+"onboarding.accessibility.title" = "グローバルホットキーを有効化";
+"onboarding.accessibility.subtitle" = "どこからでもグローバルホットキーを使用するには、アクセシビリティ権限を許可してください。";
+"onboarding.accessibility.granted" = "アクセシビリティ権限が許可されました";
+"onboarding.accessibility.required" = "アクセシビリティ権限が必要です";
+"onboarding.accessibility.instructions" = "システム設定 → プライバシーとセキュリティ → アクセシビリティ → Motiveを有効化";
+"onboarding.accessibility.open_settings" = "システム設定を開く";
+
+// Browser
+"onboarding.browser.title" = "ブラウザ自動化";
+"onboarding.browser.subtitle" = "ショッピング、調査、フォーム入力などのウェブタスクにAIがブラウザを制御できるようにします。";
+"onboarding.browser.enable_desc" = "AIにブラウザタスクの自動化を許可";
+"onboarding.browser.info" = "後で設定で変更できます。";
+
+// Complete
+"onboarding.complete.title" = "準備完了！";
+"onboarding.complete.subtitle" = "いつでもホットキーを押してMotiveを呼び出し、やりたいことを伝えてください。";
+"onboarding.complete.hotkey_label" = "ホットキー";
+"onboarding.complete.hotkey_hint" = "どこでもこのキーを押してコマンドバーを開く";
+"onboarding.complete.start_using" = "Motiveを使い始める";
+
+// Accessibility extra
+"onboarding.accessibility.hotkey_ready" = "ホットキーは使用可能です";
+"onboarding.accessibility.hotkey_required" = "グローバルホットキーに必要です";
+
+// Permission
+"onboarding.permission.mode" = "権限モード";
+"onboarding.permission.mode_desc" = "AIにどの程度の自律性を与えるか選択";
+"onboarding.permission.yolo_warning" = "すべての操作が承認なしで実行されます";
+"onboarding.permission.change_hint" = "設定 → 権限 でいつでも変更できます";
+
+// Common
+"onboarding.skip" = "スキップ";
+"onboarding.continue" = "続ける";
+
+"drawer.copy_result" = "結果をコピー";
+"drawer.edit_last_message" = "最後のメッセージを編集";
+"drawer.preview_plan" = "計画をプレビュー";
+"drawer.preview_plan_hint" = "生成された計画のMarkdownプレビューを開く";
+"drawer.plan_preview" = "計画プレビュー";
+"drawer.reload_plan_preview" = "再読み込み";
+"drawer.plan_preview_load_failed" = "計画の読み込みに失敗しました: %@";
+"drawer.plan_draft_streaming" = "計画ドラフト（ライブ）";

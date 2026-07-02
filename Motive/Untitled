@@ -1,0 +1,1 @@
+/Users/geezerrrr/Workspace/OpenSources/Motive/MotiveRemote/ContentView.swift:81:14 Referencing instance method 'onChange(of:initial:_:)' on 'Optional' requires that 'RemotePermissionRequest' conform to 'Equatable'

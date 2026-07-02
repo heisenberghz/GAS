@@ -1,0 +1,494 @@
+/* 
+  Localizable.strings (English)
+  Motive
+*/
+
+// MARK: - Common
+"app.name" = "Motive";
+"common.cancel" = "Cancel";
+"common.submit" = "Submit";
+"common.save" = "Save";
+"common.delete" = "Delete";
+"common.done" = "Done";
+"common.allow" = "Allow";
+"common.deny" = "Deny";
+"common.error" = "Error";
+"common.warning" = "Warning";
+"common.ok" = "OK";
+"common.unsaved_changes" = "Unsaved changes";
+"common.show" = "Show";
+"common.hide" = "Hide";
+"common.expand" = "Expand";
+"common.collapse" = "Collapse";
+"common.show_less" = "Show less";
+"common.show_more_lines" = "Show %d more lines";
+"common.loading" = "Loading...";
+"common.install" = "Install";
+"common.edit" = "Edit";
+"common.reject" = "Reject";
+"common.allow_once" = "Allow Once";
+"common.always_allow" = "Always Allow";
+
+// MARK: - Command Bar
+"commandbar.placeholder" = "What should I do?";
+"commandbar.submit" = "Submit";
+"commandbar.settings" = "Settings";
+"commandbar.run" = "Run";
+"commandbar.close" = "Close";
+"commandbar.select" = "Select";
+"commandbar.complete" = "Complete";
+"commandbar.navigate" = "Navigate";
+"commandbar.back" = "Back";
+"commandbar.open" = "Open";
+"commandbar.delete" = "Delete";
+"commandbar.new" = "New";
+"commandbar.commands" = "Commands";
+"commandbar.stop" = "Stop";
+"commandbar.drawer" = "Details";
+"commandbar.send" = "Send";
+"commandbar.retry" = "Retry";
+"commandbar.cancel" = "Cancel";
+"commandbar.running" = "Running";
+"commandbar.new_task" = "New Task";
+"commandbar.completed" = "Completed";
+"commandbar.details" = "Details";
+"commandbar.error" = "Error";
+"commandbar.dismiss" = "Dismiss";
+"commandbar.ready" = "Ready";
+"commandbar.type_request" = "Type your request below";
+"commandbar.starting" = "Starting…";
+"commandbar.current" = "current";
+"commandbar.no_sessions" = "No sessions yet";
+"commandbar.no_sessions.desc" = "Your conversation history will appear here";
+"commandbar.modified_files" = "Modified files:";
+"commandbar.follow_up" = "Follow up…";
+"commandbar.tools_executed" = "%d tool(s) executed";
+"commandbar.task_finished" = "Task finished";
+"commandbar.more_files" = "+%d more files";
+"commandbar.tab" = "Tab";
+"commandbar.search_sessions" = "Search sessions...";
+"commandbar.type_command" = "Type a command...";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.star_on_github" = "Star on GitHub";
+
+// Settings Tabs
+"settings.tab.general" = "General";
+"settings.tab.general.subtitle" = "Startup, appearance, and keyboard shortcuts";
+"settings.tab.ai_provider" = "AI Provider";
+"settings.tab.ai_provider.subtitle" = "Configure your AI provider and API credentials";
+"settings.tab.usage" = "Usage";
+"settings.tab.usage.subtitle" = "Token usage and cost summary";
+"settings.tab.skills" = "Skills";
+"settings.tab.skills.subtitle" = "Manage installed skills and tool wiring";
+"settings.tab.memory" = "Memory";
+"settings.tab.memory.subtitle" = "Persistent memory and knowledge base";
+"settings.tab.about.subtitle" = "Application info and component status";
+"settings.tab.permissions" = "Permissions";
+"settings.tab.permissions.subtitle" = "File operation policies and safety rules";
+"settings.tab.advanced" = "Advanced";
+"settings.tab.advanced.subtitle" = "Binary paths and debug options";
+
+// General Settings
+"settings.general.startup" = "Startup";
+"settings.general.launch_at_login" = "Launch at Login";
+"settings.general.launch_at_login.desc" = "Start Motive when you log in";
+"settings.general.keyboard" = "Keyboard";
+"settings.general.global_hotkey" = "Global Hotkey";
+"settings.general.global_hotkey.desc" = "Summon the Command Bar";
+"settings.general.appearance" = "Appearance";
+"settings.general.theme" = "Theme";
+"settings.general.theme.desc" = "Choose light, dark, or follow system";
+"settings.general.theme.system" = "System";
+"settings.general.theme.light" = "Light";
+"settings.general.theme.dark" = "Dark";
+"settings.general.command_bar_position" = "Position";
+"settings.general.command_bar_position.desc" = "Choose where the command bar appears on screen";
+"settings.general.glass_effect" = "Glass Effect";
+"settings.general.glass_effect.desc" = "Choose between clear or tinted glass";
+"settings.general.glass_effect.clear" = "Clear";
+"settings.general.glass_effect.tinted" = "Tinted";
+"settings.general.position.center" = "Center";
+"settings.general.position.top_leading" = "Top Left";
+"settings.general.position.top_middle" = "Top Middle";
+"settings.general.position.top_trailing" = "Top Right";
+"settings.general.position.bottom_leading" = "Bottom Left";
+"settings.general.position.bottom_middle" = "Bottom Middle";
+"settings.general.position.bottom_trailing" = "Bottom Right";
+
+// Language Settings
+"settings.general.language" = "Language";
+"settings.general.language.desc" = "Choose your preferred language";
+"settings.general.language.system" = "System";
+"settings.general.language.english" = "English";
+"settings.general.language.chinese" = "简体中文";
+"settings.general.language.japanese" = "日本語";
+"settings.general.language.restart_required" = "Restart required to apply";
+"settings.general.restart_now" = "Restart Now";
+
+// AI Provider Settings
+"settings.provider.select" = "Select Provider";
+"settings.provider.api_key" = "API Key";
+"settings.provider.api_key.placeholder" = "Enter your API key";
+"settings.provider.api_key.configured" = "Configured";
+"settings.provider.base_url" = "Base URL";
+"settings.provider.base_url.placeholder" = "Optional: Custom API endpoint";
+"settings.provider.model_name" = "Model Name";
+"settings.provider.model_name.placeholder" = "Optional: Override default model";
+
+// Permission Settings
+"settings.permissions.file_operations" = "File Operations";
+"settings.permissions.risk_levels" = "Risk Levels";
+"settings.permissions.reset_to_defaults" = "Reset to Defaults";
+"settings.permissions.policy.always_allow" = "Always Allow";
+"settings.permissions.policy.always_ask" = "Always Ask";
+"settings.permissions.policy.ask_once" = "Ask Once";
+"settings.permissions.policy.always_deny" = "Always Deny";
+
+// File Operations
+"settings.permissions.op.create" = "Create File";
+"settings.permissions.op.create.desc" = "Creating new files";
+"settings.permissions.op.delete" = "Delete File";
+"settings.permissions.op.delete.desc" = "Removing files permanently";
+"settings.permissions.op.modify" = "Modify Content";
+"settings.permissions.op.modify.desc" = "Editing file contents";
+"settings.permissions.op.overwrite" = "Overwrite File";
+"settings.permissions.op.overwrite.desc" = "Replacing entire file";
+"settings.permissions.op.rename" = "Rename File";
+"settings.permissions.op.rename.desc" = "Changing file names";
+"settings.permissions.op.move" = "Move File";
+"settings.permissions.op.move.desc" = "Moving to another location";
+"settings.permissions.op.read_binary" = "Read Binary";
+"settings.permissions.op.read_binary.desc" = "Reading binary files";
+"settings.permissions.op.execute" = "Execute Script";
+"settings.permissions.op.execute.desc" = "Running scripts or binaries";
+
+// Risk Levels
+"settings.permissions.risk.low" = "Low";
+"settings.permissions.risk.low.desc" = "Safe operations like creating files";
+"settings.permissions.risk.medium" = "Medium";
+"settings.permissions.risk.medium.desc" = "Reorganization like rename or move";
+"settings.permissions.risk.high" = "High";
+"settings.permissions.risk.high.desc" = "Potentially destructive like overwrite";
+"settings.permissions.risk.critical" = "Critical";
+"settings.permissions.risk.critical.desc" = "Irreversible operations like delete";
+
+// Browser Automation
+"settings.browser.title" = "Browser Automation";
+"settings.browser.enable" = "Enable Browser Control";
+"settings.browser.enable.desc" = "AI-powered browser automation using bundled sidecar";
+"settings.browser.show_window" = "Show Browser Window";
+"settings.browser.show_window.desc" = "Display browser during automation (headed mode)";
+"settings.browser.agent_mode" = "Agent Mode (for complex tasks)";
+"settings.browser.agent_provider" = "Agent LLM Provider";
+"settings.browser.agent_provider.desc" = "LLM for autonomous browser tasks";
+"settings.browser.api_key.desc" = "Required for Agent mode (autonomous tasks)";
+"settings.browser.base_url" = "Base URL (Optional)";
+"settings.browser.base_url.desc" = "Custom API endpoint";
+"settings.browser.status" = "Status";
+"settings.browser.status.ready" = "Ready - sidecar binary available";
+"settings.browser.status.not_found" = "Build required - run Scripts/browser-use-sidecar/build.sh";
+"settings.browser.status.disabled" = "Browser automation is disabled";
+"settings.browser.not_set" = "Not set";
+
+// Persona
+"settings.tab.persona" = "Persona";
+"settings.tab.persona.subtitle" = "Agent identity and workspace files";
+"settings.persona.agent_identity" = "Agent Identity";
+"settings.persona.workspace_files" = "Workspace Files";
+"settings.persona.name" = "Name";
+"settings.persona.name.desc" = "What should I call myself?";
+"settings.persona.emoji" = "Emoji";
+"settings.persona.emoji.desc" = "Status bar icon";
+"settings.persona.creature" = "Creature";
+"settings.persona.creature.desc" = "What kind of being am I?";
+"settings.persona.vibe" = "Vibe";
+"settings.persona.vibe.desc" = "How do I come across?";
+"settings.persona.open_workspace" = "Workspace";
+"settings.persona.open_workspace.desc" = "~/.motive/";
+"settings.persona.open_in_finder" = "Open in Finder";
+"settings.persona.edit_soul" = "Soul";
+"settings.persona.edit_soul.desc" = "Core personality and values";
+"settings.persona.edit_user" = "User Profile";
+"settings.persona.edit_user.desc" = "Information about you";
+"settings.persona.edit" = "Edit";
+"settings.persona.save_and_apply" = "Save & Apply";
+"settings.persona.open_emoji_picker" = "Open Emoji Picker";
+"settings.persona.tab.identity" = "Identity";
+"settings.persona.tab.soul" = "Soul";
+"settings.persona.tab.user" = "User";
+
+// Skills
+"settings.skills.system" = "Skills System";
+"settings.skills.enable" = "Enable Skills";
+"settings.skills.enable.desc" = "Load skills from bundled, managed, and workspace sources";
+"settings.skills.list" = "Installed Skills";
+"settings.skills.eligible" = "Eligible";
+"settings.skills.ineligible" = "Ineligible";
+"settings.skills.refresh" = "Refresh Skills";
+"settings.skills.no_skills" = "No skills installed";
+"settings.skills.no_skills.desc" = "Skills will appear here when available";
+
+// Advanced Settings
+"settings.advanced.opencode_binary" = "OpenCode Binary";
+"settings.advanced.binary_status" = "Binary Status";
+"settings.advanced.binary.bundled" = "Using bundled binary";
+"settings.advanced.binary.custom" = "Using custom binary";
+"settings.advanced.binary.not_found" = "Binary not found";
+"settings.advanced.import_binary" = "Import Binary";
+"settings.advanced.importing" = "Importing...";
+"settings.advanced.select_binary" = "Select Binary";
+"settings.advanced.auto_detect" = "Auto-Detect";
+"settings.advanced.source_path" = "Source Path";
+"settings.advanced.diagnostics" = "Diagnostics";
+"settings.advanced.debug_mode" = "Debug Mode";
+"settings.advanced.debug_mode.desc" = "Enable verbose logging";
+"settings.advanced.about" = "About";
+"settings.advanced.version" = "Version";
+"settings.advanced.build" = "Build";
+"settings.advanced.not_configured" = "Not configured";
+
+// Provider Config
+"settings.provider.provider" = "Provider";
+"settings.provider.configuration" = "Configuration";
+"settings.provider.ollama_host" = "Ollama Host";
+"settings.provider.default_endpoint" = "Leave empty to use default endpoint";
+"settings.provider.model" = "Model";
+"settings.provider.save_restart" = "Save & Restart";
+"settings.provider.agent_restarted" = "Agent restarted";
+
+// Hotkey Recorder
+"settings.hotkey.press_keys" = "Press keys...";
+"settings.hotkey.click_to_record" = "Click to record";
+
+// Trust Level
+"settings.permissions.trust.careful" = "Careful";
+"settings.permissions.trust.careful.desc" = "Ask before file edits and shell commands";
+"settings.permissions.trust.balanced" = "Balanced";
+"settings.permissions.trust.balanced.desc" = "Auto-approve edits, ask for unknown commands";
+"settings.permissions.trust.yolo" = "YOLO";
+"settings.permissions.trust.yolo.desc" = "Allow all operations (except dangerous ones)";
+
+// Permission Policy
+"settings.permissions.trust_level" = "TRUST LEVEL";
+"settings.permissions.trust_all_ops" = "All operations run without approval. Use with caution.";
+"settings.permissions.add_rule" = "Add rule...";
+"settings.permissions.add_rule_for" = "Add Rule for %@";
+"settings.permissions.pattern" = "Pattern";
+"settings.permissions.action" = "Action";
+"settings.permissions.description_optional" = "Description (optional)";
+"settings.permissions.what_rule_does" = "What this rule does";
+
+// Skills Detail
+"settings.skills.search" = "Search...";
+"settings.skills.refresh_a11y" = "Refresh skills";
+"settings.skills.loading" = "Loading...";
+"settings.skills.no_match" = "No matches";
+"settings.skills.select" = "Select a skill";
+"settings.skills.unable_to_load" = "Unable to load SKILL.md";
+"settings.skills.missing_reqs" = "Missing Requirements";
+"settings.skills.enter_api_key" = "Enter API key...";
+"settings.skills.guide" = "Skill Guide";
+"settings.skills.blocked" = "Blocked";
+"settings.skills.disabled" = "Disabled";
+"settings.skills.enabled" = "Enabled";
+"settings.skills.restart_pending" = "Skill changes will apply after the current task finishes.";
+
+// Memory
+"settings.memory.system" = "Memory System";
+"settings.memory.enable" = "Enable Memory";
+"settings.memory.enable.desc" = "Persistent memory across sessions using the motive-memory plugin";
+"settings.memory.index_status" = "Index Status";
+"settings.memory.indexed_files" = "Indexed Files";
+"settings.memory.indexed_files.desc" = "Number of files in the memory index";
+"settings.memory.last_sync" = "Last Sync";
+"settings.memory.rebuild_index" = "Rebuild Index";
+"settings.memory.rebuild_index.desc" = "Re-index all memory files";
+"settings.memory.rebuild" = "Rebuild";
+"settings.memory.file_section" = "MEMORY.md";
+"settings.memory.file.desc" = "Long-term memory file";
+"settings.memory.no_memories" = "No memories yet.";
+"settings.memory.never" = "Never";
+"settings.memory.not_indexed" = "Not indexed";
+"settings.memory.plugin_status" = "Plugin Status";
+"settings.memory.plugin_status.desc" = "Runtime availability of motive-memory tools";
+"settings.memory.plugin_available" = "Available";
+"settings.memory.plugin_missing" = "Missing plugin";
+
+// About
+"settings.about.powered_by" = "POWERED BY";
+"settings.about.all_rights_reserved" = "© 2024-2026 Velvet. All rights reserved.";
+"settings.advanced.actions" = "Actions";
+"settings.search.prompt" = "Search settings";
+"settings.a11y.open_settings_hint" = "Open %@ settings";
+
+// Scheduled Tasks
+"settings.tab.scheduled_tasks" = "Scheduled Tasks";
+"settings.tab.scheduled_tasks.subtitle" = "Configure runtime scheduled prompts";
+"settings.scheduled_tasks.runtime_scheduler" = "Runtime Scheduler";
+"settings.scheduled_tasks.scope" = "Scope";
+"settings.scheduled_tasks.scope.desc" = "Scheduled tasks run only while Motive is running.";
+"settings.scheduled_tasks.in_app_only" = "In-app only";
+"settings.scheduled_tasks.section" = "Scheduled Tasks";
+"settings.scheduled_tasks.no_tasks" = "No tasks yet";
+"settings.scheduled_tasks.no_tasks.desc" = "Create your first scheduled task.";
+"settings.scheduled_tasks.new_task" = "New Task";
+"settings.scheduled_tasks.refresh" = "Refresh";
+"settings.scheduled_tasks.run_now" = "Run Now";
+"settings.scheduled_tasks.not_scheduled" = "not scheduled";
+"settings.scheduled_tasks.never_run" = "never run";
+"settings.scheduled_tasks.summary" = "Next: %@ · Last: %@";
+"settings.scheduled_tasks.editor.new" = "New Scheduled Task";
+"settings.scheduled_tasks.editor.edit" = "Edit Scheduled Task";
+"settings.scheduled_tasks.task_name" = "Task name";
+"settings.scheduled_tasks.prompt" = "Prompt";
+"settings.scheduled_tasks.working_directory_optional" = "Working directory (optional)";
+"settings.scheduled_tasks.agent_optional" = "Agent (optional)";
+"settings.scheduled_tasks.schedule_type" = "Schedule type";
+"settings.scheduled_tasks.schedule.once" = "Once";
+"settings.scheduled_tasks.schedule.interval" = "Interval";
+"settings.scheduled_tasks.schedule.daily" = "Daily";
+"settings.scheduled_tasks.schedule.weekly" = "Weekly";
+"settings.scheduled_tasks.schedule.cron" = "Cron";
+"settings.scheduled_tasks.enabled" = "Enabled";
+"settings.scheduled_tasks.run_at" = "Run at";
+"settings.scheduled_tasks.interval_seconds" = "Interval seconds (>=60)";
+"settings.scheduled_tasks.time" = "Time";
+"settings.scheduled_tasks.weekday" = "Weekday";
+"settings.scheduled_tasks.cron_expression" = "Cron (m h dom mon dow)";
+"settings.scheduled_tasks.next_run" = "Next run: %@";
+"settings.scheduled_tasks.next_run_unavailable" = "Next run: not available";
+"settings.scheduled_tasks.error.task_name_required" = "Task name is required.";
+"settings.scheduled_tasks.error.prompt_required" = "Prompt is required.";
+"settings.scheduled_tasks.error.interval_minimum" = "Interval must be at least 60 seconds.";
+
+// MARK: - Drawer
+"drawer.new_session" = "New Session";
+"drawer.new_chat" = "New Chat";
+"drawer.conversation" = "Conversation";
+"drawer.thinking" = "Thinking";
+"drawer.processing" = "Processing";
+"drawer.completed" = "Completed";
+"drawer.failed" = "Failed";
+"drawer.interrupted" = "Interrupted";
+"drawer.running" = "Running";
+"drawer.stop" = "Stop";
+"drawer.close" = "Close";
+"drawer.input.placeholder" = "Send a follow-up...";
+"drawer.message.placeholder" = "Message...";
+"drawer.start_conversation" = "Start a Conversation";
+"drawer.start_hint" = "Type below or press ⌥Space\nto open the Command Bar";
+"drawer.history" = "History";
+"drawer.no_history" = "No history yet";
+"drawer.assistant" = "Assistant";
+"drawer.tool" = "Tool";
+"drawer.tip" = "Tip: Click the title above to switch sessions";
+"drawer.tasks" = "Tasks";
+"drawer.changes" = "Changes";
+"drawer.context_help" = "Current context size";
+"drawer.show_output" = "Show output";
+"drawer.hide_output" = "Hide output";
+
+// MARK: - Permission Request
+"permission.file" = "File Permission";
+"permission.question" = "Question";
+"permission.allow_once" = "Allow";
+"permission.deny_once" = "Deny";
+"permission.required" = "Permission Required";
+"permission.label" = "Permission:";
+"permission.path" = "Path:";
+"permission.paths" = "Paths:";
+"permission.type_response" = "Type your response...";
+"permission.type_answer" = "Type your answer...";
+"permission.preview_changes" = "Preview changes";
+
+// MARK: - Alerts
+"alert.delete_session_title" = "Delete this session?";
+"alert.delete_session_message" = "This will permanently delete \"%@\"";
+
+// MARK: - Usage
+"usage.token_usage" = "TOKEN USAGE";
+"usage.no_data" = "No usage data yet.";
+"usage.cumulative" = "Totals are cumulative across sessions.";
+"usage.cost_reported" = "Cost is reported by OpenCode.";
+"usage.reset" = "Reset Usage";
+"usage.input" = "Input";
+"usage.output" = "Output";
+"usage.reasoning" = "Reasoning";
+"usage.cache_read" = "Cache Read";
+"usage.cache_write" = "Cache Write";
+
+// MARK: - Time
+"time.just_now" = "just now";
+"time.minutes_ago" = "%dm ago";
+"time.hours_ago" = "%dh ago";
+"time.days_ago" = "%dd ago";
+
+// MARK: - Status Bar
+"statusbar.idle" = "Motive";
+"statusbar.reasoning" = "Thinking...";
+"statusbar.executing" = "Working...";
+"statusbar.command_bar" = "Command Bar";
+"statusbar.settings" = "Settings";
+"statusbar.quit" = "Quit";
+
+// MARK: - Errors
+"error.no_api_key" = "API key not configured";
+"error.invalid_config" = "Invalid configuration";
+"error.binary_not_found" = "OpenCode binary not found";
+"error.connection_failed" = "Connection failed";
+
+// MARK: - Onboarding
+// Welcome
+"onboarding.welcome.title" = "Welcome to Motive";
+"onboarding.welcome.subtitle" = "Your personal AI agent that works in the background, so you don't have to wait.";
+"onboarding.welcome.get_started" = "Get Started";
+
+// AI Provider
+"onboarding.ai_provider.title" = "Configure AI Provider";
+"onboarding.ai_provider.subtitle" = "Choose your AI provider and enter your API key to get started.";
+
+// Accessibility
+"onboarding.accessibility.title" = "Enable Global Hotkey";
+"onboarding.accessibility.subtitle" = "Grant Accessibility permission to use the global hotkey from anywhere.";
+"onboarding.accessibility.granted" = "Accessibility permission granted";
+"onboarding.accessibility.required" = "Accessibility permission required";
+"onboarding.accessibility.instructions" = "Open System Settings → Privacy & Security → Accessibility → Enable Motive";
+"onboarding.accessibility.open_settings" = "Open System Settings";
+
+// Browser
+"onboarding.browser.title" = "Browser Automation";
+"onboarding.browser.subtitle" = "Enable AI to control your browser for web tasks like shopping, research, and form filling.";
+"onboarding.browser.enable_desc" = "Allow AI to automate browser tasks";
+"onboarding.browser.info" = "You can change this later in Settings.";
+
+// Complete
+"onboarding.complete.title" = "You're All Set!";
+"onboarding.complete.subtitle" = "Press the hotkey anytime to summon Motive and describe what you want done.";
+"onboarding.complete.hotkey_label" = "Your hotkey";
+"onboarding.complete.hotkey_hint" = "Press this anywhere to open the Command Bar";
+"onboarding.complete.start_using" = "Start Using Motive";
+
+// Accessibility extra
+"onboarding.accessibility.hotkey_ready" = "Hotkey is ready to use";
+"onboarding.accessibility.hotkey_required" = "Required for global hotkey";
+
+// Permission
+"onboarding.permission.mode" = "Permission Mode";
+"onboarding.permission.mode_desc" = "Choose how much autonomy the AI has";
+"onboarding.permission.yolo_warning" = "All operations run without approval";
+"onboarding.permission.change_hint" = "You can change this anytime in Settings → Permissions";
+
+// Common
+"onboarding.skip" = "Skip";
+"onboarding.continue" = "Continue";
+
+"drawer.copy_result" = "Copy result";
+"drawer.edit_last_message" = "Edit last message";
+"drawer.preview_plan" = "Preview Plan";
+"drawer.preview_plan_hint" = "Open the generated plan markdown in a preview window";
+"drawer.plan_preview" = "Plan Preview";
+"drawer.reload_plan_preview" = "Reload";
+"drawer.plan_preview_load_failed" = "Failed to load plan: %@";
+"drawer.plan_draft_streaming" = "Live plan draft";
