@@ -18,6 +18,7 @@ namespace Motive.App
         private OpenCodeServer? _openCodeServer;
         private CredentialStore? _credentialStore;
         private CommandBarWindow? _commandBar;
+        private DrawerWindow? _drawer;
         private HotkeyManager? _hotkeyManager;
 
         private MenuItem? _statusHeaderItem;
@@ -50,10 +51,14 @@ namespace Motive.App
                 }
                 _credentialStore = new CredentialStore();
 
-                // Initialize Command Bar and Hotkey Hook
+                // Initialize Command Bar, Drawer, and Hotkey Hook
                 _commandBar = new CommandBarWindow();
                 var helper = new System.Windows.Interop.WindowInteropHelper(_commandBar);
                 helper.EnsureHandle(); // Ensure HWND exists before registering hotkey
+
+                _drawer = new DrawerWindow();
+                var drawerHelper = new System.Windows.Interop.WindowInteropHelper(_drawer);
+                drawerHelper.EnsureHandle(); // Ensure HWND exists
 
                 _hotkeyManager = new HotkeyManager(helper.Handle);
                 _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
@@ -156,10 +161,18 @@ namespace Motive.App
             _notifyIcon.TrayLeftMouseDown += (s, e) => ToggleDrawer();
         }
 
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private void ToggleDrawer()
         {
-            // Will be wired to Phase 5 DrawerWindow
-            MessageBox.Show("Toggle Drawer Panel (Coming in Phase 5)", "Motive", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (_drawer == null) return;
+            if (_drawer.IsVisible)
+            {
+                _drawer.HideDrawer();
+            }
+            else
+            {
+                _drawer.ShowDrawer();
+            }
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -281,6 +294,7 @@ namespace Motive.App
         {
             _hotkeyManager?.Dispose();
             _commandBar?.Close();
+            _drawer?.Close();
 
             _openCodeServer?.Dispose();
             _notifyIcon?.Dispose();
