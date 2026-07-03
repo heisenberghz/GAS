@@ -17,6 +17,8 @@ namespace Motive.App
         private TaskbarIcon? _notifyIcon;
         private OpenCodeServer? _openCodeServer;
         private CredentialStore? _credentialStore;
+        private CommandBarWindow? _commandBar;
+        private HotkeyManager? _hotkeyManager;
 
         private MenuItem? _statusHeaderItem;
         private System.Drawing.Icon? _iconIdle;
@@ -47,6 +49,29 @@ namespace Motive.App
                     db.Database.EnsureCreated();
                 }
                 _credentialStore = new CredentialStore();
+
+                // Initialize Command Bar and Hotkey Hook
+                _commandBar = new CommandBarWindow();
+                var helper = new System.Windows.Interop.WindowInteropHelper(_commandBar);
+                helper.EnsureHandle(); // Ensure HWND exists before registering hotkey
+
+                _hotkeyManager = new HotkeyManager(helper.Handle);
+                _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
+
+                var isRegistered = _hotkeyManager.Register(
+                    HotkeyManager.KeyModifiers.Control | HotkeyManager.KeyModifiers.Shift,
+                    System.Windows.Input.Key.Space
+                );
+
+                if (!isRegistered)
+                {
+                    MessageBox.Show(
+                        "Could not register global hotkey Ctrl+Shift+Space. Another application might be using it.",
+                        "Motive - Hotkey Warning",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning
+                    );
+                }
 
                 // 3. Initialize background server
                 _openCodeServer = new OpenCodeServer();
@@ -105,7 +130,7 @@ namespace Motive.App
             contextMenu.Items.Add(_statusHeaderItem);
             contextMenu.Items.Add(new Separator());
 
-            var commandBarItem = new MenuItem { Header = "Toggle Command Bar (Alt+Space)" };
+            var commandBarItem = new MenuItem { Header = "Toggle Command Bar (Ctrl+Shift+Space)" };
             commandBarItem.Click += (s, e) => ToggleCommandBar();
             contextMenu.Items.Add(commandBarItem);
 
@@ -137,10 +162,41 @@ namespace Motive.App
             MessageBox.Show("Toggle Drawer Panel (Coming in Phase 5)", "Motive", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private void ToggleCommandBar()
         {
-            // Will be wired to Phase 4 CommandBarWindow
-            MessageBox.Show("Toggle Command Bar (Coming in Phase 4)", "Motive", MessageBoxButton.OK, MessageBoxImage.Information);
+            OnHotkeyPressed();
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private void OnHotkeyPressed()
+        {
+            if (_commandBar == null) return;
+            if (_commandBar.IsVisible)
+            {
+                _commandBar.HideCommandBar();
+            }
+            else
+            {
+                _commandBar.ShowCommandBar();
+            }
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public void StartMockAgentRun(string prompt)
+        {
+            SetAppState(AppStateIcon.Thinking, $"Analyzing: \"{prompt}\"");
+
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                // Simulate thinking for 2 seconds
+                await System.Threading.Tasks.Task.Delay(2000);
+                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Executing, $"Running tasks for: \"{prompt}\""));
+
+                // Simulate execution for 4 seconds
+                await System.Threading.Tasks.Task.Delay(4000);
+                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Idle, "Idle"));
+            });
         }
 
         private void ShowSettings()
@@ -220,8 +276,12 @@ namespace Motive.App
             }
         }
 
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private void ShutdownApp()
         {
+            _hotkeyManager?.Dispose();
+            _commandBar?.Close();
+
             _openCodeServer?.Dispose();
             _notifyIcon?.Dispose();
             
