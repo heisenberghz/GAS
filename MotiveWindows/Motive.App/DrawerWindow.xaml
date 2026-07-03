@@ -148,7 +148,7 @@
 
                     <!-- Tab 2: Past Sessions List -->
                     <TabItem Header="History">
-                        <ListView x:Name="MockSessionsList" Background="Transparent" BorderThickness="0" Margin="0,10,0,0">
+                        <ListView x:Name="MockSessionsList" Background="Transparent" BorderThickness="0" Margin="0,10,0,0" SelectionChanged="SessionsList_SelectionChanged">
                             <!-- Style ListBoxItem for Fluent appearance -->
                             <ListView.ItemTemplate>
                                 <DataTemplate>

@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
 using Motive.Core;
 using Motive.Core.Data;
+using Motive.Core.Models;
 
 namespace Motive.App
 {
@@ -16,6 +17,7 @@ namespace Motive.App
         private static Mutex? _mutex;
         private TaskbarIcon? _notifyIcon;
         private OpenCodeServer? _openCodeServer;
+        private OpenCodeClient? _openCodeClient;
         private CredentialStore? _credentialStore;
         private CommandBarWindow? _commandBar;
         private DrawerWindow? _drawer;
@@ -205,19 +207,54 @@ namespace Motive.App
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        public void StartMockAgentRun(string prompt)
+        public void StartRealAgentRun(string prompt)
         {
-            SetAppState(AppStateIcon.Thinking, $"Analyzing: \"{prompt}\"");
+            if (_openCodeClient == null)
+            {
+                MessageBox.Show("OpenCode server is not connected yet. Please try again in a few seconds.", "Motive", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            SetAppState(AppStateIcon.Thinking, "Thinking...");
 
             System.Threading.Tasks.Task.Run(async () =>
             {
-                // Simulate thinking for 2 seconds
-                await System.Threading.Tasks.Task.Delay(2000);
-                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Executing, $"Running tasks for: \"{prompt}\""));
+                try
+                {
+                    // 1. Create session on OpenCode server
+                    var sessionInfo = await _openCodeClient.CreateSessionAsync(prompt);
+                    
+                    // 2. Insert into SQLite DB
+                    using (var db = new MotiveDbContext())
+                    {
+                        var newSession = new Session
+                        {
+                            Id = Guid.Parse(sessionInfo.id),
+                            Intent = prompt,
+                            Status = SessionStatus.Running,
+                            ProjectPath = "d:\\motive windows"
+                        };
+                        db.Sessions.Add(newSession);
+                        await db.SaveChangesAsync();
+                    }
 
-                // Simulate execution for 4 seconds
-                await System.Threading.Tasks.Task.Delay(4000);
-                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Idle, "Idle"));
+                    // 3. Update Drawer UI
+                    Dispatcher.Invoke(() =>
+                    {
+                        _drawer?.OnNewSessionStarted(sessionInfo.id, prompt);
+                    });
+
+                    // 4. Send the prompt to the background engine
+                    await _openCodeClient.SendPromptAsync(sessionInfo.id, prompt, "d:\\motive windows");
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetAppState(AppStateIcon.Error, "Error");
+                        MessageBox.Show($"Failed to execute agent prompt: {ex.Message}", "Motive", MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                }
             });
         }
 
@@ -281,12 +318,56 @@ namespace Motive.App
         private void OnServerUrlDetected(string url)
         {
             Dispatcher.Invoke(() => SetAppState(AppStateIcon.Executing, "Server Connected"));
+
+            // Initialize OpenCodeClient and start streaming events
+            _openCodeClient = new OpenCodeClient(url);
+            _openCodeClient.EventReceived += OnOpenCodeEventReceived;
+            _openCodeClient.StartStreaming("d:\\motive windows");
+
             // Auto revert to idle after 2 seconds of connection success
             Task.Run(async () =>
             {
                 await Task.Delay(2000);
                 Dispatcher.Invoke(() => SetAppState(AppStateIcon.Idle, "Idle"));
             });
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private void OnOpenCodeEventReceived(OpenCodeEvent ev)
+        {
+            // Route events to Drawer Window
+            Dispatcher.Invoke(() =>
+            {
+                _drawer?.HandleIncomingEvent(ev);
+            });
+
+            // Update app states based on status/idle events
+            if (ev.type == "session.status")
+            {
+                if (ev.properties.TryGetProperty("status", out var statusProp))
+                {
+                    if (statusProp.TryGetProperty("type", out var typeProp))
+                    {
+                        var statusType = typeProp.GetString();
+                        if (statusType == "running")
+                        {
+                            Dispatcher.Invoke(() => SetAppState(AppStateIcon.Executing, "Executing..."));
+                        }
+                        else if (statusType == "thinking")
+                        {
+                            Dispatcher.Invoke(() => SetAppState(AppStateIcon.Thinking, "Thinking..."));
+                        }
+                    }
+                }
+            }
+            else if (ev.type == "session.idle")
+            {
+                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Idle, "Idle"));
+            }
+            else if (ev.type == "session.error")
+            {
+                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Error, "Error"));
+            }
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]

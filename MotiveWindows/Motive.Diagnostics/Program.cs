@@ -13,6 +13,15 @@ namespace Motive.Diagnostics
     {
         static async Task Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--clear")
+            {
+                var store = new CredentialStore();
+                store.Delete("OpenAiApiKey");
+                store.Delete("AnthropicApiKey");
+                Console.WriteLine("Successfully cleared secure API keys from Credential Store.");
+                return;
+            }
+
             Console.WriteLine("==================================================");
             Console.WriteLine("Motive Windows Port - Diagnostics Launcher");
             Console.WriteLine("==================================================");

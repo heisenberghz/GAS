@@ -190,37 +190,10 @@ namespace Motive.App
 
             HideCommandBar();
 
-            // Save to DB and execute mock engine response in App
-            Task.Run(async () =>
+            if (Application.Current is App app)
             {
-                try
-                {
-                    using (var db = new MotiveDbContext())
-                    {
-                        var session = new Session
-                        {
-                            Intent = text,
-                            Status = SessionStatus.Running
-                        };
-                        db.Sessions.Add(session);
-                        await db.SaveChangesAsync();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Fail silently in DB background threads
-                    System.Diagnostics.Debug.WriteLine($"Failed to save session: {ex.Message}");
-                }
-
-                // Notify UI state update in App
-                Dispatcher.Invoke(() =>
-                {
-                    if (Application.Current is App app)
-                    {
-                        app.StartMockAgentRun(text);
-                    }
-                });
-            });
+                app.StartRealAgentRun(text);
+            }
         }
     }
 }
