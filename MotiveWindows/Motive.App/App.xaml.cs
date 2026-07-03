@@ -52,6 +52,23 @@ namespace Motive.App
                 }
                 _credentialStore = new CredentialStore();
 
+                // Check if API keys are configured, otherwise trigger onboarding
+                var openAiKey = _credentialStore.Read("OpenAiApiKey");
+                var anthropicKey = _credentialStore.Read("AnthropicApiKey");
+
+                if (string.IsNullOrEmpty(openAiKey) && string.IsNullOrEmpty(anthropicKey))
+                {
+                    var onboarding = new OnboardingWindow();
+                    onboarding.ShowDialog();
+
+                    if (!onboarding.IsOnboardingSuccess)
+                    {
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "startup.log"), "Onboarding cancelled. Exiting.");
+                        Shutdown();
+                        return;
+                    }
+                }
+
                 // Initialize Command Bar, Drawer, and Hotkey Hook
                 _commandBar = new CommandBarWindow();
                 var helper = new System.Windows.Interop.WindowInteropHelper(_commandBar);

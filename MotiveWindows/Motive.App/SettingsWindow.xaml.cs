@@ -97,7 +97,7 @@ namespace Motive.App
                     CtrlModifier = CtrlCheckBox.IsChecked ?? false,
                     ShiftModifier = ShiftCheckBox.IsChecked ?? false,
                     AltModifier = AltCheckBox.IsChecked ?? false,
-                    HotkeyKey = ((ComboBoxItem)KeyComboBox.SelectedItem).Content.ToString()
+                    HotkeyKey = ((ComboBoxItem)KeyComboBox.SelectedItem)?.Content?.ToString() ?? "Space"
                 };
 
                 // 2. Save encrypted API keys
