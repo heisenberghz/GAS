@@ -47,6 +47,52 @@ namespace Motive.Diagnostics
                 Console.ResetColor();
             }
 
+            Console.WriteLine("\n[Phase 5B] Testing Settings Manager (JSON)...");
+            try
+            {
+                var originalSettings = SettingsManager.Load();
+                
+                var testSettings = new AppSettings
+                {
+                    StartOnBoot = true,
+                    CustomBinaryPath = @"C:\Custom\opencode.exe",
+                    CtrlModifier = true,
+                    ShiftModifier = false,
+                    AltModifier = true,
+                    HotkeyKey = "M"
+                };
+
+                SettingsManager.Save(testSettings);
+
+                var reloadedSettings = SettingsManager.Load();
+                if (reloadedSettings.StartOnBoot == testSettings.StartOnBoot &&
+                    reloadedSettings.CustomBinaryPath == testSettings.CustomBinaryPath &&
+                    reloadedSettings.CtrlModifier == testSettings.CtrlModifier &&
+                    reloadedSettings.ShiftModifier == testSettings.ShiftModifier &&
+                    reloadedSettings.AltModifier == testSettings.AltModifier &&
+                    reloadedSettings.HotkeyKey == testSettings.HotkeyKey)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("Success: SettingsManager saved and reloaded settings correctly!");
+                    Console.ResetColor();
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Error: Loaded settings do not match saved settings!");
+                    Console.ResetColor();
+                }
+
+                // Restore original settings
+                SettingsManager.Save(originalSettings);
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"SettingsManager test failed: {ex.Message}");
+                Console.ResetColor();
+            }
+
             Console.WriteLine("\n[Phase 2] Testing Database Persistence (EF Core SQLite)...");
             try
             {

@@ -20,6 +20,7 @@ namespace Motive.App
         private CommandBarWindow? _commandBar;
         private DrawerWindow? _drawer;
         private HotkeyManager? _hotkeyManager;
+        private MenuItem? _commandBarMenuItem;
 
         private MenuItem? _statusHeaderItem;
         private System.Drawing.Icon? _iconIdle;
@@ -63,20 +64,9 @@ namespace Motive.App
                 _hotkeyManager = new HotkeyManager(helper.Handle);
                 _hotkeyManager.HotkeyPressed += OnHotkeyPressed;
 
-                var isRegistered = _hotkeyManager.Register(
-                    HotkeyManager.KeyModifiers.Control | HotkeyManager.KeyModifiers.Shift,
-                    System.Windows.Input.Key.Space
-                );
-
-                if (!isRegistered)
-                {
-                    MessageBox.Show(
-                        "Could not register global hotkey Ctrl+Shift+Space. Another application might be using it.",
-                        "Motive - Hotkey Warning",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning
-                    );
-                }
+                // Load Settings and Register hotkey from configuration
+                var settings = SettingsManager.Load();
+                RegisterHotkeyFromSettings(settings);
 
                 // 3. Initialize background server
                 _openCodeServer = new OpenCodeServer();
@@ -135,9 +125,11 @@ namespace Motive.App
             contextMenu.Items.Add(_statusHeaderItem);
             contextMenu.Items.Add(new Separator());
 
-            var commandBarItem = new MenuItem { Header = "Toggle Command Bar (Ctrl+Shift+Space)" };
-            commandBarItem.Click += (s, e) => ToggleCommandBar();
-            contextMenu.Items.Add(commandBarItem);
+            var settings = SettingsManager.Load();
+            var display = GetHotkeyDisplayString(settings);
+            _commandBarMenuItem = new MenuItem { Header = $"Toggle Command Bar ({display})" };
+            _commandBarMenuItem.Click += (s, e) => ToggleCommandBar();
+            contextMenu.Items.Add(_commandBarMenuItem);
 
             var settingsItem = new MenuItem { Header = "Settings..." };
             settingsItem.Click += (s, e) => ShowSettings();
@@ -212,10 +204,60 @@ namespace Motive.App
             });
         }
 
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private void ShowSettings()
         {
-            // Will be wired to Phase 5 SettingsWindow
-            MessageBox.Show("Show Settings Dialog (Coming in Phase 5)", "Motive", MessageBoxButton.OK, MessageBoxImage.Information);
+            var settingsWin = new SettingsWindow();
+            settingsWin.ShowDialog();
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        public void RebindHotkey(AppSettings settings)
+        {
+            _hotkeyManager?.Unregister();
+            RegisterHotkeyFromSettings(settings);
+
+            if (_commandBarMenuItem != null)
+            {
+                var display = GetHotkeyDisplayString(settings);
+                _commandBarMenuItem.Header = $"Toggle Command Bar ({display})";
+            }
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private void RegisterHotkeyFromSettings(AppSettings settings)
+        {
+            if (_hotkeyManager == null) return;
+
+            var modifiers = HotkeyManager.KeyModifiers.None;
+            if (settings.CtrlModifier) modifiers |= HotkeyManager.KeyModifiers.Control;
+            if (settings.ShiftModifier) modifiers |= HotkeyManager.KeyModifiers.Shift;
+            if (settings.AltModifier) modifiers |= HotkeyManager.KeyModifiers.Alt;
+
+            if (Enum.TryParse<System.Windows.Input.Key>(settings.HotkeyKey, out var key))
+            {
+                var isRegistered = _hotkeyManager.Register(modifiers, key);
+                if (!isRegistered)
+                {
+                    var display = GetHotkeyDisplayString(settings);
+                    MessageBox.Show(
+                        $"Could not register global hotkey {display}. Another application might be using it.",
+                        "Motive - Hotkey Warning",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning
+                    );
+                }
+            }
+        }
+
+        private string GetHotkeyDisplayString(AppSettings settings)
+        {
+            var parts = new System.Collections.Generic.List<string>();
+            if (settings.CtrlModifier) parts.Add("Ctrl");
+            if (settings.ShiftModifier) parts.Add("Shift");
+            if (settings.AltModifier) parts.Add("Alt");
+            parts.Add(settings.HotkeyKey);
+            return string.Join("+", parts);
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
