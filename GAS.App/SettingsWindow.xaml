@@ -1,4 +1,4 @@
-﻿<ui:FluentWindow x:Class="GAS.App.SettingsWindow"
+<ui:FluentWindow x:Class="GAS.App.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -68,7 +68,6 @@
 
                     <TextBlock Text="OpenAI API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
                     <ui:PasswordBox x:Name="OpenAiPasswordBox" 
-                                    PasswordChar="â—" 
                                     PlaceholderText="sk-proj-... (Paste OpenAI key here)" 
                                     Height="32" 
                                     VerticalContentAlignment="Center"
@@ -76,7 +75,6 @@
 
                     <TextBlock Text="Anthropic API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
                     <ui:PasswordBox x:Name="AnthropicPasswordBox" 
-                                    PasswordChar="â—" 
                                     PlaceholderText="sk-ant-... (Paste Anthropic key here)" 
                                     Height="32" 
                                     VerticalContentAlignment="Center"/>
