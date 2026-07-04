@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAS.App", "GAS.App\GAS.App.csproj", "{20E636F6-69E9-4B4D-BF43-B75154ADC1B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAS.Core", "GAS.Core\GAS.Core.csproj", "{FCCA5278-352D-4092-8F88-8D81E1244733}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GAS.Diagnostics", "GAS.Diagnostics\GAS.Diagnostics.csproj", "{2125C587-1638-4E3E-9F2D-8FA64EF41555}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{20E636F6-69E9-4B4D-BF43-B75154ADC1B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20E636F6-69E9-4B4D-BF43-B75154ADC1B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20E636F6-69E9-4B4D-BF43-B75154ADC1B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20E636F6-69E9-4B4D-BF43-B75154ADC1B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCCA5278-352D-4092-8F88-8D81E1244733}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCCA5278-352D-4092-8F88-8D81E1244733}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCCA5278-352D-4092-8F88-8D81E1244733}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCCA5278-352D-4092-8F88-8D81E1244733}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2125C587-1638-4E3E-9F2D-8FA64EF41555}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2125C587-1638-4E3E-9F2D-8FA64EF41555}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2125C587-1638-4E3E-9F2D-8FA64EF41555}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2125C587-1638-4E3E-9F2D-8FA64EF41555}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
+

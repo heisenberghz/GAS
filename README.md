@@ -1,11 +1,11 @@
-<p align="center">
-  <img src="assets/icon.png" width="128" height="128" alt="Motive">
+﻿<p align="center">
+  <img src="assets/icon.png" width="128" height="128" alt="GAS">
 </p>
 
-<h1 align="center">Motive</h1>
+<h1 align="center">GAS</h1>
 
 <h3 align="center"><strong>Say it. Walk away.</strong></h3>
-<p align="center">A background desktop assistant that runs AI agents in the background — and finds you when they need approval.</p>
+<p align="center">A background desktop assistant that runs AI agents in the background â€” and finds you when they need approval.</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Windows%2010%2F11-blue?style=flat-square" alt="Platform">
@@ -14,20 +14,20 @@
 </p>
 
 <p align="center">
-  <a href="https://motivework.app/docs">Documentation</a> · <a href="https://github.com/geezerrrr/motive/releases/latest">Download</a> · <a href="https://github.com/geezerrrr/motive/issues">Feedback</a>
+  <a href="https://GASwork.app/docs">Documentation</a> Â· <a href="https://github.com/geezerrrr/GAS/releases/latest">Download</a> Â· <a href="https://github.com/geezerrrr/GAS/issues">Feedback</a>
 </p>
 
 ---
 
-## Why Motive?
+## Why GAS?
 
 AI coding agents are powerful, but they all assume you're watching. Switch away from the terminal or editor, and you'll come back to find the agent stuck on a permission approval that's been sitting there for minutes.
 
-Motive puts the agent in your Windows System Tray (next to your clock). No window to babysit. When it needs a yes/no or has a question, a native popup drops down — no matter what app you're in. You respond, it continues, you go back to what you were doing.
+GAS puts the agent in your Windows System Tray (next to your clock). No window to babysit. When it needs a yes/no or has a question, a native popup drops down â€” no matter what app you're in. You respond, it continues, you go back to what you were doing.
 
-Under the hood it uses [OpenCode](https://github.com/anomalyco/opencode) as the agent engine. Motive doesn't try to be a better agent — it just makes sure the agent can reach you.
+Under the hood it uses [OpenCode](https://github.com/anomalyco/opencode) as the agent engine. GAS doesn't try to be a better agent â€” it just makes sure the agent can reach you.
 
-| Feature | Desktop Apps | CLI Tools | Motive |
+| Feature | Desktop Apps | CLI Tools | GAS |
 |---|---|---|---|
 | Where it lives | App window | Terminal | System tray |
 | When it needs you | Buried in UI | Waits in terminal | System notification |
@@ -37,14 +37,14 @@ Under the hood it uses [OpenCode](https://github.com/anomalyco/opencode) as the 
 
 ## Architecture & Tech Stack
 
-Motive is built as a lightweight, native Windows background application:
+GAS is built as a lightweight, native Windows background application:
 
 *   **UI Framework:** WPF (.NET 8.0) styled with Lepo's Fluent `WPF-UI` library.
 *   **System Tray:** Context menu and dynamic icon status representation:
-    *   🟣 **Purple:** Idle
-    *   🟡 **Orange:** Thinking
-    *   🟢 **Green:** Executing task
-    *   `🔴` **Red:** Error state
+    *   ðŸŸ£ **Purple:** Idle
+    *   ðŸŸ¡ **Orange:** Thinking
+    *   ðŸŸ¢ **Green:** Executing task
+    *   `ðŸ”´` **Red:** Error state
 *   **Database:** Session logs and transcripts persistent history via SQLite and Entity Framework Core.
 *   **API Security:** Local credentials storage utilizing Windows Data Protection API (DPAPI) encryption.
 *   **Global Hotkey:** Low-level Win32 keyboard hook (`Ctrl + Shift + Space` default).
@@ -55,14 +55,14 @@ Motive is built as a lightweight, native Windows background application:
 ## Features
 
 ### Core
-- **Background execution** — The agent runs in the background. No window to watch, no terminal to babysit.
-- **Native popups** — Permission requests and questions appear as popups from the tray.
-- **Ambient status** — Tray icon shows execution states at a glance without demanding attention.
-- **Concurrent sessions** — Run multiple tasks in parallel, each working independently.
+- **Background execution** â€” The agent runs in the background. No window to watch, no terminal to babysit.
+- **Native popups** â€” Permission requests and questions appear as popups from the tray.
+- **Ambient status** â€” Tray icon shows execution states at a glance without demanding attention.
+- **Concurrent sessions** â€” Run multiple tasks in parallel, each working independently.
 
 ### Control & Privacy
-- **Trust levels** — Three modes to control what the agent can do on its own: Careful, Balanced, and Yolo.
-- **Local-first** — All data stays on your machine. Only API requests leave your device.
+- **Trust levels** â€” Three modes to control what the agent can do on its own: Careful, Balanced, and Yolo.
+- **Local-first** â€” All data stays on your machine. Only API requests leave your device.
 
 ---
 
@@ -75,9 +75,9 @@ npm install -g opencode-ai
 
 Clone the repository and build the C# solution:
 ```bash
-git clone https://github.com/geezerrrr/motive.git
-cd motive
-dotnet build Motive.sln
+git clone https://github.com/geezerrrr/GAS.git
+cd GAS
+dotnet build GAS.sln
 ```
 
 *(The application automatically resolves your global npm installation paths for the OpenCode background server process on startup).*
@@ -104,10 +104,11 @@ dotnet build Motive.sln
 
 ## Acknowledgments
 
-Powered by [OpenCode](https://github.com/anomalyco/opencode) — the open-source AI coding agent.
+Powered by [OpenCode](https://github.com/anomalyco/opencode) â€” the open-source AI coding agent.
 
 ---
 
 <p align="center">
   <sub>Let AI wait for you, not the other way around.</sub>
 </p>
+

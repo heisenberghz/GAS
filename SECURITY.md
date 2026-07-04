@@ -1,4 +1,4 @@
-# Security Policy
+﻿# Security Policy
 
 ## Supported Versions
 
@@ -44,11 +44,12 @@ We aim to respond within 48 hours and will work with you to understand and addre
 
 ## Third-Party Dependencies
 
-Motive relies on:
+GAS relies on:
 
-- **OpenCode** — AI agent CLI (bundled binary)
+- **OpenCode** â€” AI agent CLI (bundled binary)
 - No other runtime dependencies
 
 ## Updates
 
 Security updates will be released as patch versions. We recommend always using the latest release.
+
