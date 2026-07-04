@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -182,6 +182,34 @@ namespace GAS.Diagnostics
             Console.WriteLine("\n[Phase 1] Resolving OpenCode CLI Binary...");
             var binaryManager = new BinaryManager();
             var (binaryPath, error) = binaryManager.ResolveBinary();
+
+            if (binaryPath == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.Write("OpenCode binary not found. Would you like to download the native Windows binary automatically? (y/n): ");
+                Console.ResetColor();
+                var key = Console.ReadLine()?.Trim().ToLower();
+                if (key == "y" || key == "yes")
+                {
+                    try
+                    {
+                        var downloader = new GAS.Core.EngineDownloader();
+                        downloader.StatusChanged += (status) => Console.WriteLine($"\n[Downloader] {status}");
+                        downloader.ProgressChanged += (progress) => Console.Write($"\r[Downloader] Progress: {progress:F1}%   ");
+                        
+                        downloader.DownloadAsync().GetAwaiter().GetResult();
+                        Console.WriteLine("\n[Downloader] Download completed successfully.");
+                        
+                        (binaryPath, error) = binaryManager.ResolveBinary();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"\nError downloading binary: {ex.Message}");
+                        Console.ResetColor();
+                    }
+                }
+            }
 
             if (binaryPath == null)
             {

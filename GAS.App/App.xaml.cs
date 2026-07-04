@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -92,18 +92,37 @@ namespace GAS.App
                 _openCodeServer.ServerUrlDetected += OnServerUrlDetected;
                 _openCodeServer.ProcessExited += OnServerProcessExited;
 
+                var binaryManager = new BinaryManager();
+                var (binaryPath, error) = binaryManager.ResolveBinary();
+
+                if (binaryPath == null)
+                {
+                    // Open the downloader window on the UI thread
+                    var downloader = new DownloaderWindow();
+                    var downloadResult = downloader.ShowDialog();
+                    
+                    if (downloadResult == true && downloader.IsDownloadSuccess)
+                    {
+                        // Try resolving again
+                        (binaryPath, error) = binaryManager.ResolveBinary();
+                    }
+                }
+
+                if (binaryPath == null)
+                {
+                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "startup.log"), "Engine binary not found or downloaded. Exiting.");
+                    Shutdown();
+                    return;
+                }
+
                 // Start server in the background (using Resolved binary)
+                var resolvedPath = binaryPath;
                 Task.Run(async () =>
                 {
                     try
                     {
-                        var binaryManager = new BinaryManager();
-                        var (binaryPath, error) = binaryManager.ResolveBinary();
-                        if (binaryPath != null)
-                        {
-                            var workingDir = AppDomain.CurrentDomain.BaseDirectory;
-                            await _openCodeServer.StartAsync(binaryPath, workingDir);
-                        }
+                        var workingDir = AppDomain.CurrentDomain.BaseDirectory;
+                        await _openCodeServer.StartAsync(resolvedPath, workingDir);
                     }
                     catch (Exception ex)
                     {

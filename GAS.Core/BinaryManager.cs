@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 
@@ -90,17 +90,15 @@ namespace GAS.Core
 
             foreach (var dir in pathDirs)
             {
-                // On Windows, it could be either opencode.exe (compiled binary) or opencode.cmd (npm wrapper)
-                var exePath = Path.Combine(dir, "opencode.exe");
-                if (File.Exists(exePath) && IsValidBinary(exePath))
+                // On Windows, it could be either opencode.exe (compiled binary) or opencode.cmd/bat/ps1 (npm wrapper shims)
+                var extensions = new[] { ".exe", ".cmd", ".bat", ".ps1" };
+                foreach (var ext in extensions)
                 {
-                    return (exePath, null);
-                }
-
-                var cmdPath = Path.Combine(dir, "opencode.cmd");
-                if (File.Exists(cmdPath) && IsValidBinary(cmdPath))
-                {
-                    return (cmdPath, null);
+                    var checkPath = Path.Combine(dir, "opencode" + ext);
+                    if (File.Exists(checkPath) && IsValidBinary(checkPath))
+                    {
+                        return (checkPath, null);
+                    }
                 }
             }
 
@@ -168,7 +166,10 @@ namespace GAS.Core
 
         private string GetDirectExePath(string cmdPath)
         {
-            if (string.IsNullOrEmpty(cmdPath) || !cmdPath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(cmdPath) || 
+                (!cmdPath.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase) &&
+                 !cmdPath.EndsWith(".bat", StringComparison.OrdinalIgnoreCase) &&
+                 !cmdPath.EndsWith(".ps1", StringComparison.OrdinalIgnoreCase)))
             {
                 return cmdPath;
             }
