@@ -30,6 +30,13 @@ namespace GAS.App
         private System.Drawing.Icon? _iconExecuting;
         private System.Drawing.Icon? _iconError;
 
+        // Fix 1.1: workspace path (no more hardcoded directory)
+        private string _workspacePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        // Fix 1.2: track restart attempts to avoid infinite crash loop
+        private int _serverRestartAttempts = 0;
+        // Fix 1.3: track the active session ID to mark it Completed
+        private string? _activeSessionId;
+
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -251,20 +258,21 @@ namespace GAS.App
                             Id = Guid.Parse(sessionInfo.id),
                             Intent = prompt,
                             Status = SessionStatus.Running,
-                            ProjectPath = "d:\\GAS windows"
+                            ProjectPath = _workspacePath
                         };
                         db.Sessions.Add(newSession);
                         await db.SaveChangesAsync();
                     }
 
-                    // 3. Update Drawer UI
+                    // 3. Update Drawer UI and track active session
+                    _activeSessionId = sessionInfo.id;
                     Dispatcher.Invoke(() =>
                     {
                         _drawer?.OnNewSessionStarted(sessionInfo.id, prompt);
                     });
 
                     // 4. Send the prompt to the background engine
-                    await _openCodeClient.SendPromptAsync(sessionInfo.id, prompt, "d:\\GAS windows");
+                    await _openCodeClient.SendPromptAsync(sessionInfo.id, prompt, _workspacePath);
                 }
                 catch (Exception ex)
                 {
@@ -341,7 +349,7 @@ namespace GAS.App
             // Initialize OpenCodeClient and start streaming events
             _openCodeClient = new OpenCodeClient(url);
             _openCodeClient.EventReceived += OnOpenCodeEventReceived;
-            _openCodeClient.StartStreaming("d:\\GAS windows");
+            _openCodeClient.StartStreaming(_workspacePath);
 
             // Auto revert to idle after 2 seconds of connection success
             Task.Run(async () =>
@@ -382,6 +390,25 @@ namespace GAS.App
             else if (ev.type == "session.idle")
             {
                 Dispatcher.Invoke(() => SetAppState(AppStateIcon.Idle, "Idle"));
+                // Fix 1.3: mark the active session as Completed in the DB
+                if (!string.IsNullOrEmpty(_activeSessionId))
+                {
+                    var completedId = _activeSessionId;
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using var db = new GASDbContext();
+                            var session = await db.Sessions.FindAsync(Guid.Parse(completedId));
+                            if (session != null)
+                            {
+                                session.Status = SessionStatus.Completed;
+                                await db.SaveChangesAsync();
+                            }
+                        }
+                        catch { /* Non-critical – ignore DB errors here */ }
+                    });
+                }
             }
             else if (ev.type == "session.error")
             {
@@ -393,6 +420,32 @@ namespace GAS.App
         private void OnServerProcessExited(int exitCode)
         {
             Dispatcher.Invoke(() => SetAppState(AppStateIcon.Error, $"Engine Stopped ({exitCode})"));
+
+            // Fix 1.2: auto-restart the engine (up to 3 attempts)
+            if (_serverRestartAttempts < 3)
+            {
+                _serverRestartAttempts++;
+                Task.Run(async () =>
+                {
+                    await Task.Delay(3000);
+                    try
+                    {
+                        var binaryManager = new BinaryManager();
+                        var (binaryPath, _) = binaryManager.ResolveBinary();
+                        if (binaryPath != null)
+                        {
+                            var workingDir = AppDomain.CurrentDomain.BaseDirectory;
+                            await _openCodeServer!.StartAsync(binaryPath, workingDir);
+                            _serverRestartAttempts = 0;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "engine-startup-crash.log"), ex.ToString());
+                        Dispatcher.Invoke(() => SetAppState(AppStateIcon.Error, "Engine Restart Failed"));
+                    }
+                });
+            }
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
