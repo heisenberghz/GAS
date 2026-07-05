@@ -94,24 +94,54 @@
 
             <!-- Tab 2: Secured API Keys -->
             <TabItem Header="API Keys" Padding="12,6">
-                <StackPanel Margin="5,15,5,5">
-                    <TextBlock Text="AI Engine API Credentials" FontSize="14" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
-                    <TextBlock Text="Keys are saved locally on your machine and encrypted using Windows DPAPI, locked securely to your Windows User Account." 
-                               FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,15"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="5,15,15,15">
+                        <TextBlock Text="AI Engine API Credentials" FontSize="14" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
+                        <TextBlock Text="Keys are saved locally on your machine and encrypted using Windows DPAPI, locked securely to your Windows User Account." 
+                                   FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,15"/>
 
-                    <TextBlock Text="OpenAI API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
-                    <ui:PasswordBox x:Name="OpenAiPasswordBox" 
-                                    PlaceholderText="sk-proj-... (Paste OpenAI key here)" 
-                                    Height="32" 
-                                    VerticalContentAlignment="Center"
-                                    Margin="0,0,0,15"/>
+                        <TextBlock Text="OpenAI API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
+                        <ui:PasswordBox x:Name="OpenAiPasswordBox" 
+                                        PlaceholderText="sk-proj-... (Paste OpenAI key here)" 
+                                        Height="32" 
+                                        VerticalContentAlignment="Center"
+                                        Margin="0,0,0,15"/>
 
-                    <TextBlock Text="Anthropic API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
-                    <ui:PasswordBox x:Name="AnthropicPasswordBox" 
-                                    PlaceholderText="sk-ant-... (Paste Anthropic key here)" 
+                        <TextBlock Text="Anthropic API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
+                        <ui:PasswordBox x:Name="AnthropicPasswordBox" 
+                                        PlaceholderText="sk-ant-... (Paste Anthropic key here)" 
+                                        Height="32" 
+                                        VerticalContentAlignment="Center"
+                                        Margin="0,0,0,15"/>
+
+                        <TextBlock Text="Gemini API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
+                        <ui:PasswordBox x:Name="GeminiPasswordBox" 
+                                        PlaceholderText="AIzaSy... (Paste Gemini key here)" 
+                                        Height="32" 
+                                        VerticalContentAlignment="Center"
+                                        Margin="0,0,0,15"/>
+
+                        <TextBlock Text="OpenRouter API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
+                        <ui:PasswordBox x:Name="OpenRouterPasswordBox" 
+                                        PlaceholderText="sk-or-... (Paste OpenRouter key here)" 
+                                        Height="32" 
+                                        VerticalContentAlignment="Center"
+                                        Margin="0,0,0,15"/>
+
+                        <TextBlock Text="Zen API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
+                        <ui:PasswordBox x:Name="ZenPasswordBox" 
+                                        PlaceholderText="Paste Zen key here" 
+                                        Height="32" 
+                                        VerticalContentAlignment="Center"
+                                        Margin="0,0,0,15"/>
+
+                        <TextBlock Text="Ollama Endpoint" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
+                        <ui:TextBox x:Name="OllamaTextBox" 
+                                    PlaceholderText="http://localhost:11434 (Optional)" 
                                     Height="32" 
                                     VerticalContentAlignment="Center"/>
-                </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
             <!-- Tab 3: Hotkey Bindings -->

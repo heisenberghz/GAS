@@ -130,8 +130,23 @@ namespace GAS.App
                 {
                     try
                     {
+                        var env = new System.Collections.Generic.Dictionary<string, string>();
+                        var openAi = _credentialStore.Read("OpenAiApiKey");
+                        var anthropic = _credentialStore.Read("AnthropicApiKey");
+                        var gemini = _credentialStore.Read("GeminiApiKey");
+                        var openRouter = _credentialStore.Read("OpenRouterApiKey");
+                        var zen = _credentialStore.Read("ZenApiKey");
+                        var ollama = _credentialStore.Read("OllamaEndpoint");
+
+                        if (!string.IsNullOrEmpty(openAi)) env["OPENAI_API_KEY"] = openAi;
+                        if (!string.IsNullOrEmpty(anthropic)) env["ANTHROPIC_API_KEY"] = anthropic;
+                        if (!string.IsNullOrEmpty(gemini)) env["GEMINI_API_KEY"] = gemini;
+                        if (!string.IsNullOrEmpty(openRouter)) env["OPENROUTER_API_KEY"] = openRouter;
+                        if (!string.IsNullOrEmpty(zen)) env["ZEN_API_KEY"] = zen;
+                        if (!string.IsNullOrEmpty(ollama)) env["OLLAMA_HOST"] = ollama;
+
                         var workingDir = AppDomain.CurrentDomain.BaseDirectory;
-                        await _openCodeServer.StartAsync(resolvedPath, workingDir);
+                        await _openCodeServer.StartAsync(resolvedPath, workingDir, env);
                     }
                     catch (Exception ex)
                     {

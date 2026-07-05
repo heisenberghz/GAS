@@ -44,6 +44,10 @@ namespace GAS.App
                 // 2. Load API Keys
                 OpenAiPasswordBox.Password = _credentialStore.Read("OpenAiApiKey") ?? string.Empty;
                 AnthropicPasswordBox.Password = _credentialStore.Read("AnthropicApiKey") ?? string.Empty;
+                GeminiPasswordBox.Password = _credentialStore.Read("GeminiApiKey") ?? string.Empty;
+                OpenRouterPasswordBox.Password = _credentialStore.Read("OpenRouterApiKey") ?? string.Empty;
+                ZenPasswordBox.Password = _credentialStore.Read("ZenApiKey") ?? string.Empty;
+                OllamaTextBox.Text = _credentialStore.Read("OllamaEndpoint") ?? string.Empty;
 
                 // 3. Load Hotkey selections
                 CtrlCheckBox.IsChecked = settings.CtrlModifier;
@@ -140,6 +144,10 @@ namespace GAS.App
                 // 2. Save encrypted API keys
                 _credentialStore.Write("OpenAiApiKey", OpenAiPasswordBox.Password.Trim());
                 _credentialStore.Write("AnthropicApiKey", AnthropicPasswordBox.Password.Trim());
+                _credentialStore.Write("GeminiApiKey", GeminiPasswordBox.Password.Trim());
+                _credentialStore.Write("OpenRouterApiKey", OpenRouterPasswordBox.Password.Trim());
+                _credentialStore.Write("ZenApiKey", ZenPasswordBox.Password.Trim());
+                _credentialStore.Write("OllamaEndpoint", OllamaTextBox.Text.Trim());
 
                 // 3. Save JSON Settings
                 SettingsManager.Save(settings);
