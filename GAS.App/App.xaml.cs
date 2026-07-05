@@ -263,7 +263,7 @@ namespace GAS.App
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        public void StartRealAgentRun(string prompt)
+        public void StartRealAgentRun(string prompt, string? existingSessionId = null)
         {
             if (_openCodeClient == null)
             {
@@ -288,32 +288,59 @@ namespace GAS.App
                         SettingsManager.Save(settings);
                     }
 
-                    // 1. Create session on OpenCode server
-                    var sessionInfo = await _openCodeClient.CreateSessionAsync(prompt);
-                    
-                    // 2. Insert into SQLite DB
-                    using (var db = new GASDbContext())
+                    string sessionId;
+                    if (!string.IsNullOrEmpty(existingSessionId))
                     {
-                        var newSession = new Session
+                        sessionId = existingSessionId;
+
+                        // Update status to Running in DB
+                        using (var db = new GASDbContext())
                         {
-                            Id = Guid.Parse(sessionInfo.id),
-                            Intent = prompt,
-                            Status = SessionStatus.Running,
-                            ProjectPath = _workspacePath
-                        };
-                        db.Sessions.Add(newSession);
-                        await db.SaveChangesAsync();
+                            var existing = await db.Sessions.FindAsync(Guid.Parse(sessionId));
+                            if (existing != null)
+                            {
+                                existing.Status = SessionStatus.Running;
+                                await db.SaveChangesAsync();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 1. Create session on OpenCode server
+                        var sessionInfo = await _openCodeClient.CreateSessionAsync(prompt);
+                        sessionId = sessionInfo.id;
+                        
+                        // 2. Insert into SQLite DB
+                        using (var db = new GASDbContext())
+                        {
+                            var newSession = new Session
+                            {
+                                Id = Guid.Parse(sessionId),
+                                Intent = prompt,
+                                Status = SessionStatus.Running,
+                                ProjectPath = _workspacePath
+                            };
+                            db.Sessions.Add(newSession);
+                            await db.SaveChangesAsync();
+                        }
                     }
 
                     // 3. Update Drawer UI and track active session
-                    _activeSessionId = sessionInfo.id;
+                    _activeSessionId = sessionId;
                     Dispatcher.Invoke(() =>
                     {
-                        _drawer?.OnNewSessionStarted(sessionInfo.id, prompt);
+                        if (string.IsNullOrEmpty(existingSessionId))
+                        {
+                            _drawer?.OnNewSessionStarted(sessionId, prompt);
+                        }
+                        else
+                        {
+                            _drawer?.OnSessionResumed(sessionId);
+                        }
                     });
 
                     // 4. Send the prompt to the background engine
-                    await _openCodeClient.SendPromptAsync(sessionInfo.id, prompt, _workspacePath);
+                    await _openCodeClient.SendPromptAsync(sessionId, prompt, _workspacePath);
                 }
                 catch (Exception ex)
                 {

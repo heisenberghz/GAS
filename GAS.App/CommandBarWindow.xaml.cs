@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -50,6 +50,8 @@ namespace GAS.App
         #endregion
 
         private bool _isIntendedVisible;
+        private System.Collections.Generic.List<string> _history = new System.Collections.Generic.List<string>();
+        private int _historyIndex = -1;
 
         public CommandBarWindow()
         {
@@ -75,6 +77,7 @@ namespace GAS.App
             _isIntendedVisible = true;
 
             InputTextBox.Text = string.Empty;
+            LoadHistory();
 
             PositionAtUpperThird();
             this.Show();
@@ -193,6 +196,73 @@ namespace GAS.App
             if (Application.Current is App app)
             {
                 app.StartRealAgentRun(text);
+            }
+        }
+
+        private void LoadHistory()
+        {
+            try
+            {
+                using var db = new GASDbContext();
+                // Load last 50 intents ordered by created time descending
+                var items = System.Linq.Enumerable.ToList(
+                    System.Linq.Enumerable.Select(
+                        System.Linq.Queryable.Take(
+                            System.Linq.Queryable.OrderByDescending(db.Sessions, s => s.CreatedAt),
+                            50
+                        ),
+                        s => s.Intent
+                    )
+                );
+
+                _history.Clear();
+                foreach (var item in items)
+                {
+                    if (!string.IsNullOrEmpty(item) && !_history.Contains(item))
+                    {
+                        _history.Add(item);
+                    }
+                }
+                _historyIndex = -1;
+            }
+            catch
+            {
+                // Ignore DB errors during history loading
+            }
+        }
+
+        private void InputTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Up)
+            {
+                if (_history.Count > 0)
+                {
+                    if (_historyIndex < _history.Count - 1)
+                    {
+                        _historyIndex++;
+                        InputTextBox.Text = _history[_historyIndex];
+                        InputTextBox.CaretIndex = InputTextBox.Text.Length;
+                    }
+                    e.Handled = true;
+                }
+            }
+            else if (e.Key == Key.Down)
+            {
+                if (_history.Count > 0)
+                {
+                    if (_historyIndex > 0)
+                    {
+                        _historyIndex--;
+                        InputTextBox.Text = _history[_historyIndex];
+                        InputTextBox.CaretIndex = InputTextBox.Text.Length;
+                    }
+                    else if (_historyIndex == 0)
+                    {
+                        _historyIndex = -1;
+                        InputTextBox.Text = string.Empty;
+                    }
+                    e.Handled = true;
+                }
             }
         }
     }

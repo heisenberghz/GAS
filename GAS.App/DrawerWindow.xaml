@@ -1,4 +1,4 @@
-﻿<Window x:Class="GAS.App.DrawerWindow"
+<Window x:Class="GAS.App.DrawerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
@@ -74,16 +74,65 @@
             </Border.Effect>
 
             <Grid Margin="15,15,15,15">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="HistoryColumn" Width="0"/>
+                    <ColumnDefinition x:Name="SplitterColumn" Width="0"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>   <!-- Header -->
-                    <RowDefinition Height="*"/>      <!-- Tabs Content -->
+                    <RowDefinition Height="*"/>      <!-- Chat Transcript -->
                     <RowDefinition Height="Auto"/>   <!-- Bottom Input -->
                 </Grid.RowDefinitions>
 
+                <!-- Collapsible History Sidebar -->
+                <Grid x:Name="HistoryPanel" Grid.Column="0" Grid.RowSpan="3" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <ui:TextBox x:Name="HistorySearchTextBox"
+                                Grid.Row="0"
+                                PlaceholderText="Search history..."
+                                Height="32"
+                                Margin="0,0,0,10"
+                                VerticalContentAlignment="Center"
+                                TextChanged="HistorySearchTextBox_TextChanged"/>
+
+                    <ListView x:Name="MockSessionsList" 
+                              Grid.Row="1"
+                              Background="Transparent" 
+                              BorderThickness="0" 
+                              SelectionChanged="SessionsList_SelectionChanged">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,10" Width="210">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding Intent}" FontWeight="SemiBold" Foreground="White" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding DateStr}" Foreground="#8A8A8A" FontSize="10"/>
+                                        </StackPanel>
+                                        <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="14" Foreground="{Binding IconColor}" Grid.Column="1" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+
+                <!-- Splitter Line -->
+                <Border x:Name="SidebarSplitter" Grid.Column="1" Grid.RowSpan="3" Width="1" Background="#2D2D2D" Margin="10,0,10,0" Visibility="Collapsed"/>
+
                 <!-- Header Grid -->
-                <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
@@ -92,8 +141,20 @@
                         <TextBlock Text="Mock Agent Session Active" FontSize="11" Foreground="#8A8A8A"/>
                     </StackPanel>
 
-                    <!-- Close Button -->
+                    <!-- History Toggle Button -->
                     <ui:Button Grid.Column="1"
+                               Content="&#xE81C;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="14"
+                               Padding="8,6"
+                               Margin="0,0,6,0"
+                               Click="ToggleHistoryButton_Click"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               ToolTip="Toggle History"/>
+
+                    <!-- Close Button -->
+                    <ui:Button Grid.Column="2"
                                Content="&#xEA39;"
                                FontFamily="Segoe MDL2 Assets"
                                FontSize="14"
@@ -103,76 +164,46 @@
                                BorderThickness="0"/>
                 </Grid>
 
-                <!-- Tabs navigation and content using Wpf.Ui Navigation -->
-                <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0,10,0,10">
-                    
-                    <!-- Tab 1: Current Chat Log -->
-                    <TabItem Header="Chat Transcript">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
-                            <StackPanel x:Name="MockMessagesPanel">
-                                <!-- User Message Bubble -->
-                                <Border Background="#6366F1" CornerRadius="12,12,0,12" HorizontalAlignment="Right" MaxWidth="280" Margin="0,5,0,5" Padding="12,10">
-                                    <TextBlock Text="Review the project and fix the git warning" TextWrapping="Wrap" Foreground="White" FontSize="13"/>
-                                </Border>
+                <!-- Chat Transcript ScrollViewer -->
+                <ScrollViewer Grid.Row="1" Grid.Column="2" VerticalScrollBarVisibility="Auto" Margin="0,10,0,10">
+                    <StackPanel x:Name="MockMessagesPanel">
+                        <!-- User Message Bubble -->
+                        <Border Background="#6366F1" CornerRadius="12,12,0,12" HorizontalAlignment="Right" MaxWidth="280" Margin="0,5,0,5" Padding="12,10">
+                            <TextBlock Text="Review the project and fix the git warning" TextWrapping="Wrap" Foreground="White" FontSize="13"/>
+                        </Border>
 
-                                <!-- Agent Thoughts Bubble -->
-                                <Border Background="#2B2B2B" CornerRadius="12,12,12,0" HorizontalAlignment="Left" MaxWidth="280" Margin="0,5,0,5" Padding="12,10" BorderBrush="#3D3D3D" BorderThickness="1">
-                                    <StackPanel>
-                                        <TextBlock Text="Agent Thoughts:" FontSize="10" FontWeight="Bold" Foreground="#F59E0B" Margin="0,0,0,4"/>
-                                        <TextBlock Text="I am analyzing BinaryManager.cs to see why it references .cmd files, and checking if there are platform-specific files we can bypass." TextWrapping="Wrap" Foreground="#D1D5DB" FontSize="13"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Agent Action Log Box -->
-                                <Border Background="#1A1A1A" CornerRadius="8" BorderBrush="#333333" BorderThickness="1" Margin="0,5,0,5" Padding="10">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#10B981" Margin="0,0,10,0" Grid.Column="0" VerticalAlignment="Center"/>
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="File Modified" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                            <TextBlock Text="GAS.Core/BinaryManager.cs (+40 lines)" FontSize="11" Foreground="#8A8A8A"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-
-                                <!-- Agent Message Bubble -->
-                                <Border Background="#2B2B2B" CornerRadius="12,12,12,0" HorizontalAlignment="Left" MaxWidth="280" Margin="0,5,0,5" Padding="12,10" BorderBrush="#3D3D3D" BorderThickness="1">
-                                    <TextBlock Text="I have updated BinaryManager.cs to resolve global npm shims directly into native .exe paths. Let's run a test build." TextWrapping="Wrap" Foreground="#D1D5DB" FontSize="13"/>
-                                </Border>
+                        <!-- Agent Thoughts Bubble -->
+                        <Border Background="#2B2B2B" CornerRadius="12,12,12,0" HorizontalAlignment="Left" MaxWidth="280" Margin="0,5,0,5" Padding="12,10" BorderBrush="#3D3D3D" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="Agent Thoughts:" FontSize="10" FontWeight="Bold" Foreground="#F59E0B" Margin="0,0,0,4"/>
+                                <TextBlock Text="I am analyzing BinaryManager.cs to see why it references .cmd files, and checking if there are platform-specific files we can bypass." TextWrapping="Wrap" Foreground="#D1D5DB" FontSize="13"/>
                             </StackPanel>
-                        </ScrollViewer>
-                    </TabItem>
+                        </Border>
 
-                    <!-- Tab 2: Past Sessions List -->
-                    <TabItem Header="History">
-                        <ListView x:Name="MockSessionsList" Background="Transparent" BorderThickness="0" Margin="0,10,0,0" SelectionChanged="SessionsList_SelectionChanged">
-                            <!-- Style ListBoxItem for Fluent appearance -->
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,10" Width="330">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="{Binding Intent}" FontWeight="SemiBold" Foreground="White" FontSize="13" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding DateStr}" Foreground="#8A8A8A" FontSize="11"/>
-                                            </StackPanel>
-                                            <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="16" Foreground="{Binding IconColor}" Grid.Column="1" VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                    </TabItem>
-                </TabControl>
+                        <!-- Agent Action Log Box -->
+                        <Border Background="#1A1A1A" CornerRadius="8" BorderBrush="#333333" BorderThickness="1" Margin="0,5,0,5" Padding="10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#10B981" Margin="0,0,10,0" Grid.Column="0" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="File Modified" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
+                                    <TextBlock Text="GAS.Core/BinaryManager.cs (+40 lines)" FontSize="11" Foreground="#8A8A8A"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Agent Message Bubble -->
+                        <Border Background="#2B2B2B" CornerRadius="12,12,12,0" HorizontalAlignment="Left" MaxWidth="280" Margin="0,5,0,5" Padding="12,10" BorderBrush="#3D3D3D" BorderThickness="1">
+                            <TextBlock Text="I have updated BinaryManager.cs to resolve global npm shims directly into native .exe paths. Let's run a test build." TextWrapping="Wrap" Foreground="#D1D5DB" FontSize="13"/>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
 
                 <!-- Bottom Input Box -->
-                <Grid Grid.Row="2" Margin="0,10,0,0">
+                <Grid Grid.Row="2" Grid.Column="2" Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -610,6 +610,109 @@ namespace GAS.App
             }
         }
 
+        private bool _isHistoryOpen = false;
+
+        private void ToggleHistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isHistoryOpen = !_isHistoryOpen;
+            if (_isHistoryOpen)
+            {
+                HistoryColumn.Width = new GridLength(220);
+                SplitterColumn.Width = GridLength.Auto;
+                HistoryPanel.Visibility = Visibility.Visible;
+                SidebarSplitter.Visibility = Visibility.Visible;
+                UpdateWindowWidth(660);
+            }
+            else
+            {
+                HistoryColumn.Width = new GridLength(0);
+                SplitterColumn.Width = new GridLength(0);
+                HistoryPanel.Visibility = Visibility.Collapsed;
+                SidebarSplitter.Visibility = Visibility.Collapsed;
+                UpdateWindowWidth(420);
+            }
+        }
+
+        private void UpdateWindowWidth(double targetWidth)
+        {
+            double oldWidth = this.Width;
+            this.Width = targetWidth;
+            this.Left = this.Left - (targetWidth - oldWidth);
+        }
+
+        private void HistorySearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var searchText = HistorySearchTextBox.Text.Trim().ToLower();
+            try
+            {
+                using var db = new GASDbContext();
+                var sessions = db.Sessions
+                    .OrderByDescending(s => s.CreatedAt)
+                    .ToList();
+
+                var displayList = sessions
+                    .Where(s => string.IsNullOrEmpty(searchText) || s.Intent.ToLower().Contains(searchText))
+                    .Select(s => new SessionDisplayItem
+                    {
+                        Id = s.Id.ToString(),
+                        Intent = s.Intent,
+                        DateStr = s.CreatedAt.ToString("MMMM dd, h:mm tt"),
+                        Icon = s.Status == SessionStatus.Completed ? Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24 : Wpf.Ui.Controls.SymbolRegular.Record24,
+                        IconColor = s.Status == SessionStatus.Completed ? "#10B981" : "#8A8A8A"
+                    }).ToList();
+
+                MockSessionsList.ItemsSource = displayList;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to filter session history: {ex.Message}");
+            }
+        }
+
+        public void OnSessionResumed(string sessionId)
+        {
+            _activeSessionId = sessionId;
+            _trackedMessageBubbles.Clear();
+            _trackedToolCards.Clear();
+            MockMessagesPanel.Children.Clear();
+
+            try
+            {
+                using var db = new GASDbContext();
+                var session = db.Sessions.Find(Guid.Parse(sessionId));
+                if (session != null)
+                {
+                    AddUserMessageBubble(session.Intent);
+
+                    var logs = db.LogEntries
+                        .Where(l => l.SessionId == session.Id)
+                        .OrderBy(l => l.CreatedAt)
+                        .ToList();
+
+                    foreach (var log in logs)
+                    {
+                        if (log.Kind == "text" || log.Kind == "thought")
+                        {
+                            AddOrUpdateAgentMessageBubble(log.Id.ToString(), log.RawJson, log.Kind == "thought");
+                        }
+                        else if (log.Kind.StartsWith("tool:"))
+                        {
+                            var parts = log.Kind.Split(':');
+                            var toolName = parts.Length > 1 ? parts[1] : "Tool";
+                            var status = parts.Length > 2 ? parts[2] : "completed";
+                            AddOrUpdateToolCard(log.Id.ToString(), toolName, status, string.Empty, log.RawJson);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to resume session logs: {ex.Message}");
+            }
+
+            LoadSessionHistory();
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             HideDrawer();
@@ -636,14 +739,12 @@ namespace GAS.App
 
             InputTextBox.Text = string.Empty;
 
-            // Render message on UI and save to database
             AddUserMessageBubble(text);
             SaveLogToDatabase("user", text);
 
-            // Send prompt to the background agent server
             if (Application.Current is App app)
             {
-                app.StartRealAgentRun(text);
+                app.StartRealAgentRun(text, _activeSessionId);
             }
         }
 
