@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -39,6 +39,7 @@ namespace GAS.App
 
                 StartOnBootCheckBox.IsChecked = settings.StartOnBoot;
                 EnginePathTextBox.Text = settings.CustomBinaryPath;
+                WorkspacePathTextBox.Text = settings.LastWorkspacePath;
 
                 // 2. Load API Keys
                 OpenAiPasswordBox.Password = _credentialStore.Read("OpenAiApiKey") ?? string.Empty;
@@ -85,6 +86,24 @@ namespace GAS.App
             }
         }
 
+        private void BrowseWorkspaceButton_Click(object sender, RoutedEventArgs e)
+        {
+            // OpenFileDialog is already available (Microsoft.Win32) — pick any file
+            // and strip the filename to get the folder path.
+            var dialog = new OpenFileDialog
+            {
+                Title = "Select any file inside your workspace folder",
+                Filter = "All files (*.*)|*.*",
+                CheckFileExists = false
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                var folder = System.IO.Path.GetDirectoryName(dialog.FileName);
+                WorkspacePathTextBox.Text = folder ?? dialog.FileName;
+            }
+        }
+
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -94,6 +113,7 @@ namespace GAS.App
                 {
                     StartOnBoot = StartOnBootCheckBox.IsChecked ?? false,
                     CustomBinaryPath = EnginePathTextBox.Text.Trim(),
+                    LastWorkspacePath = WorkspacePathTextBox.Text.Trim(),
                     CtrlModifier = CtrlCheckBox.IsChecked ?? false,
                     ShiftModifier = ShiftCheckBox.IsChecked ?? false,
                     AltModifier = AltCheckBox.IsChecked ?? false,

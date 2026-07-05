@@ -4,7 +4,7 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Settings"
         Width="520"
-        Height="470"
+        Height="560"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
@@ -55,6 +55,29 @@
                                    Height="32" 
                                    Margin="8,0,0,0" 
                                    Click="BrowseButton_Click"/>
+                    </Grid>
+
+                    <Separator Background="#2D2D2D" Height="1" Margin="0,15,0,15"/>
+
+                    <TextBlock Text="Default Workspace Folder" FontSize="14" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
+                    <TextBlock Text="GAS auto-detects your active VS Code or Visual Studio project. Pin a folder here to always use it instead:" 
+                               FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBox x:Name="WorkspacePathTextBox" 
+                                    Grid.Column="0" 
+                                    PlaceholderText="Auto-detect (leave empty to use VS Code / Visual Studio folder)" 
+                                    Height="32" 
+                                    VerticalContentAlignment="Center"/>
+                        <ui:Button x:Name="BrowseWorkspaceButton" 
+                                   Grid.Column="1" 
+                                   Content="Browse..." 
+                                   Height="32" 
+                                   Margin="8,0,0,0" 
+                                   Click="BrowseWorkspaceButton_Click"/>
                     </Grid>
                 </StackPanel>
             </TabItem>

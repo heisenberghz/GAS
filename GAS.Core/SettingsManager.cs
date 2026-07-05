@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 
@@ -12,6 +12,7 @@ namespace GAS.Core
         public bool ShiftModifier { get; set; } = true;
         public bool AltModifier { get; set; } = false;
         public string HotkeyKey { get; set; } = "Space";
+        public string LastWorkspacePath { get; set; } = string.Empty;
     }
 
     public static class SettingsManager

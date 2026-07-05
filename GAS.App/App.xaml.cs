@@ -30,8 +30,8 @@ namespace GAS.App
         private System.Drawing.Icon? _iconExecuting;
         private System.Drawing.Icon? _iconError;
 
-        // Fix 1.1: workspace path (no more hardcoded directory)
-        private string _workspacePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        // Fix 1.1 / Phase 2: workspace path resolved dynamically via WorkspaceDetector
+        private string _workspacePath = string.Empty;
         // Fix 1.2: track restart attempts to avoid infinite crash loop
         private int _serverRestartAttempts = 0;
         // Fix 1.3: track the active session ID to mark it Completed
@@ -247,6 +247,17 @@ namespace GAS.App
             {
                 try
                 {
+                    // Resolve workspace: saved setting → VS Code → Visual Studio → home dir
+                    var settings = SettingsManager.Load();
+                    _workspacePath = WorkspaceDetector.Detect(settings.LastWorkspacePath);
+
+                    // Persist the detected path so it becomes the default next time
+                    if (settings.LastWorkspacePath != _workspacePath)
+                    {
+                        settings.LastWorkspacePath = _workspacePath;
+                        SettingsManager.Save(settings);
+                    }
+
                     // 1. Create session on OpenCode server
                     var sessionInfo = await _openCodeClient.CreateSessionAsync(prompt);
                     
