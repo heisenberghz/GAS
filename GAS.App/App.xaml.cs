@@ -199,6 +199,18 @@ namespace GAS.App
 
             // Left click behavior: toggles the drawer
             _notifyIcon.TrayLeftMouseDown += (s, e) => ToggleDrawer();
+
+            // Balloon click behavior: opens/shows the activity drawer
+            _notifyIcon.TrayBalloonTipClicked += (s, e) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (_drawer != null && !_drawer.IsVisible)
+                    {
+                        _drawer.ShowDrawer();
+                    }
+                });
+            };
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -418,6 +430,16 @@ namespace GAS.App
                             {
                                 session.Status = SessionStatus.Completed;
                                 await db.SaveChangesAsync();
+
+                                // Notify user of task completion
+                                Dispatcher.Invoke(() =>
+                                {
+                                    _notifyIcon?.ShowBalloonTip(
+                                        "Task Completed",
+                                        $"The agent has successfully finished the task:\n\"{session.Intent}\"",
+                                        BalloonIcon.Info
+                                    );
+                                });
                             }
                         }
                         catch { /* Non-critical – ignore DB errors here */ }
@@ -426,7 +448,15 @@ namespace GAS.App
             }
             else if (ev.type == "session.error")
             {
-                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Error, "Error"));
+                Dispatcher.Invoke(() =>
+                {
+                    SetAppState(AppStateIcon.Error, "Error");
+                    _notifyIcon?.ShowBalloonTip(
+                        "Task Failed",
+                        "An error occurred during task execution. Click to open logs.",
+                        BalloonIcon.Error
+                    );
+                });
             }
             else if (ev.type == "permission.asked")
             {
@@ -503,6 +533,13 @@ namespace GAS.App
                     Dispatcher.Invoke(() =>
                     {
                         SetAppState(AppStateIcon.WaitingForApproval, "Waiting for Approval");
+
+                        // Notify user of required approval
+                        _notifyIcon?.ShowBalloonTip(
+                            "Permission Required",
+                            $"Authorization needed for command or tool action:\n{permissionType}",
+                            BalloonIcon.Warning
+                        );
                         
                         var approvalWin = new ApprovalWindow(requestId, permissionType, detail);
                         var result = approvalWin.ShowDialog();
