@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Text;
@@ -155,6 +155,22 @@ namespace GAS.Core
             _streamCts?.Cancel();
             _streamCts?.Dispose();
             _streamCts = null;
+        }
+
+        /// <summary>
+        /// Sends a permission reply response.
+        /// </summary>
+        public async Task SendPermissionReplyAsync(string requestId, string reply)
+        {
+            var url = $"{_serverUrl}/permission/{requestId}/reply";
+            var payload = new
+            {
+                reply = reply
+            };
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+            response.EnsureSuccessStatusCode();
         }
 
         public void Dispose()

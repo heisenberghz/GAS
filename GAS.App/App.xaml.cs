@@ -6,6 +6,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using Hardcodet.Wpf.TaskbarNotification;
+using System.Text.Json;
 using GAS.Core;
 using GAS.Core.Data;
 using GAS.Core.Models;
@@ -29,6 +30,7 @@ namespace GAS.App
         private System.Drawing.Icon? _iconThinking;
         private System.Drawing.Icon? _iconExecuting;
         private System.Drawing.Icon? _iconError;
+        private System.Drawing.Icon? _iconWaitingForApproval;
 
         // Fix 1.1 / Phase 2: workspace path resolved dynamically via WorkspaceDetector
         private string _workspacePath = string.Empty;
@@ -157,6 +159,7 @@ namespace GAS.App
             _iconThinking = CreateDynamicIcon(System.Drawing.Color.FromArgb(245, 158, 11));  // Amber
             _iconExecuting = CreateDynamicIcon(System.Drawing.Color.FromArgb(16, 185, 129)); // Emerald
             _iconError = CreateDynamicIcon(System.Drawing.Color.FromArgb(239, 68, 68));      // Rose
+            _iconWaitingForApproval = CreateDynamicIcon(System.Drawing.Color.FromArgb(168, 85, 247)); // Purple (waiting approval)
 
             // Create NotifyIcon Context Menu
             var contextMenu = new ContextMenu();
@@ -425,6 +428,103 @@ namespace GAS.App
             {
                 Dispatcher.Invoke(() => SetAppState(AppStateIcon.Error, "Error"));
             }
+            else if (ev.type == "permission.asked")
+            {
+                string? requestId = null;
+                string permissionType = "Action Authorization";
+                string detail = "The agent is waiting for your approval.";
+
+                if (ev.properties.TryGetProperty("id", out var idProp))
+                {
+                    requestId = idProp.GetString();
+                }
+                else if (ev.properties.TryGetProperty("requestId", out var reqIdProp))
+                {
+                    requestId = reqIdProp.GetString();
+                }
+
+                if (string.IsNullOrEmpty(requestId)) return;
+
+                if (ev.properties.TryGetProperty("permission", out var permProp))
+                {
+                    permissionType = permProp.GetString() ?? permissionType;
+                }
+
+                if (ev.properties.TryGetProperty("tool", out var toolObjProp))
+                {
+                    if (toolObjProp.TryGetProperty("name", out var tName))
+                    {
+                        permissionType = $"{tName.GetString()} Command";
+                    }
+                    if (toolObjProp.TryGetProperty("arguments", out var tArgs))
+                    {
+                        detail = tArgs.ValueKind == JsonValueKind.String ? tArgs.GetString() : tArgs.ToString();
+                    }
+                }
+                else if (ev.properties.TryGetProperty("detail", out var detailProp))
+                {
+                    detail = detailProp.GetString() ?? detail;
+                }
+                else if (ev.properties.TryGetProperty("pattern", out var patProp))
+                {
+                    detail = patProp.GetString() ?? detail;
+                }
+
+                var settings = SettingsManager.Load();
+                var trustMode = settings.TrustMode ?? "Careful";
+
+                if (trustMode == "YOLO")
+                {
+                    // Auto-approve in YOLO mode
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _openCodeClient!.SendPermissionReplyAsync(requestId, "allow");
+                        }
+                        catch { }
+                    });
+                }
+                else if (trustMode == "Balanced" && (permissionType.ToLower().Contains("read") || permissionType.ToLower().Contains("view") || permissionType.ToLower().Contains("search")))
+                {
+                    // Auto-approve safe read actions in Balanced mode
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _openCodeClient!.SendPermissionReplyAsync(requestId, "allow");
+                        }
+                        catch { }
+                    });
+                }
+                else
+                {
+                    // Prompt the user via the custom ApprovalWindow
+                    Dispatcher.Invoke(() =>
+                    {
+                        SetAppState(AppStateIcon.WaitingForApproval, "Waiting for Approval");
+                        
+                        var approvalWin = new ApprovalWindow(requestId, permissionType, detail);
+                        var result = approvalWin.ShowDialog();
+                        var decision = approvalWin.UserDecision; // allow, deny, always
+
+                        // Revert app state to Executing
+                        SetAppState(AppStateIcon.Executing, "Executing...");
+
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await _openCodeClient!.SendPermissionReplyAsync(requestId, decision);
+                            }
+                            catch (Exception ex)
+                            {
+                                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "approval-reply-error.log"), ex.ToString());
+                            }
+                        });
+                    });
+                }
+            }
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -481,6 +581,9 @@ namespace GAS.App
                 case AppStateIcon.Error:
                     _notifyIcon.Icon = _iconError;
                     break;
+                case AppStateIcon.WaitingForApproval:
+                    _notifyIcon.Icon = _iconWaitingForApproval;
+                    break;
             }
         }
 
@@ -526,6 +629,7 @@ namespace GAS.App
             _iconThinking?.Dispose();
             _iconExecuting?.Dispose();
             _iconError?.Dispose();
+            _iconWaitingForApproval?.Dispose();
 
             _mutex?.ReleaseMutex();
             _mutex?.Dispose();
@@ -544,7 +648,8 @@ namespace GAS.App
             Idle,
             Thinking,
             Executing,
-            Error
+            Error,
+            WaitingForApproval
         }
     }
 }

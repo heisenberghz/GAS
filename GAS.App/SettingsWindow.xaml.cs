@@ -65,6 +65,22 @@ namespace GAS.App
                 {
                     KeyComboBox.SelectedIndex = 0; // Default to Space
                 }
+
+                // Map TrustMode ComboBox
+                bool foundTrust = false;
+                foreach (ComboBoxItem item in TrustModeComboBox.Items)
+                {
+                    if (item.Content.ToString() == settings.TrustMode)
+                    {
+                        TrustModeComboBox.SelectedItem = item;
+                        foundTrust = true;
+                        break;
+                    }
+                }
+                if (!foundTrust && TrustModeComboBox.Items.Count > 0)
+                {
+                    TrustModeComboBox.SelectedIndex = 0; // Default to Careful
+                }
             }
             catch (Exception ex)
             {
@@ -117,7 +133,8 @@ namespace GAS.App
                     CtrlModifier = CtrlCheckBox.IsChecked ?? false,
                     ShiftModifier = ShiftCheckBox.IsChecked ?? false,
                     AltModifier = AltCheckBox.IsChecked ?? false,
-                    HotkeyKey = ((ComboBoxItem)KeyComboBox.SelectedItem)?.Content?.ToString() ?? "Space"
+                    HotkeyKey = ((ComboBoxItem)KeyComboBox.SelectedItem)?.Content?.ToString() ?? "Space",
+                    TrustMode = ((ComboBoxItem)TrustModeComboBox.SelectedItem)?.Content?.ToString() ?? "Careful"
                 };
 
                 // 2. Save encrypted API keys

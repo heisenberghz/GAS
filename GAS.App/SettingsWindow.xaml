@@ -4,7 +4,7 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Settings"
         Width="520"
-        Height="560"
+        Height="650"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
@@ -79,6 +79,16 @@
                                    Margin="8,0,0,0" 
                                    Click="BrowseWorkspaceButton_Click"/>
                     </Grid>
+                    <Separator Background="#2D2D2D" Height="1" Margin="0,15,0,15"/>
+
+                    <TextBlock Text="Trust Mode" FontSize="14" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
+                    <TextBlock Text="Control how GAS handles authorization requests from the AI agent:" 
+                               FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <ComboBox x:Name="TrustModeComboBox" Width="180" HorizontalAlignment="Left" Height="32">
+                        <ComboBoxItem Content="Careful"/>
+                        <ComboBoxItem Content="Balanced"/>
+                        <ComboBoxItem Content="YOLO"/>
+                    </ComboBox>
                 </StackPanel>
             </TabItem>
 

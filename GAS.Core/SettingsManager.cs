@@ -13,6 +13,7 @@ namespace GAS.Core
         public bool AltModifier { get; set; } = false;
         public string HotkeyKey { get; set; } = "Space";
         public string LastWorkspacePath { get; set; } = string.Empty;
+        public string TrustMode { get; set; } = "Careful"; // Careful, Balanced, YOLO
     }
 
     public static class SettingsManager
