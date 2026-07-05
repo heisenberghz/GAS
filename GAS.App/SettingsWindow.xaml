@@ -104,6 +104,7 @@
                         <ui:PasswordBox x:Name="OpenAiPasswordBox" 
                                         PlaceholderText="sk-proj-... (Paste OpenAI key here)" 
                                         Height="32" 
+                                        PasswordChar="*"
                                         VerticalContentAlignment="Center"
                                         Margin="0,0,0,15"/>
 
@@ -111,6 +112,7 @@
                         <ui:PasswordBox x:Name="AnthropicPasswordBox" 
                                         PlaceholderText="sk-ant-... (Paste Anthropic key here)" 
                                         Height="32" 
+                                        PasswordChar="*"
                                         VerticalContentAlignment="Center"
                                         Margin="0,0,0,15"/>
 
@@ -118,6 +120,7 @@
                         <ui:PasswordBox x:Name="GeminiPasswordBox" 
                                         PlaceholderText="AIzaSy... (Paste Gemini key here)" 
                                         Height="32" 
+                                        PasswordChar="*"
                                         VerticalContentAlignment="Center"
                                         Margin="0,0,0,15"/>
 
@@ -125,6 +128,7 @@
                         <ui:PasswordBox x:Name="OpenRouterPasswordBox" 
                                         PlaceholderText="sk-or-... (Paste OpenRouter key here)" 
                                         Height="32" 
+                                        PasswordChar="*"
                                         VerticalContentAlignment="Center"
                                         Margin="0,0,0,15"/>
 
@@ -132,6 +136,7 @@
                         <ui:PasswordBox x:Name="ZenPasswordBox" 
                                         PlaceholderText="Paste Zen key here" 
                                         Height="32" 
+                                        PasswordChar="*"
                                         VerticalContentAlignment="Center"
                                         Margin="0,0,0,15"/>
 

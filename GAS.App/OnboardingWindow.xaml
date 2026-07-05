@@ -52,10 +52,11 @@
                                     Grid.Row="1" 
                                     PlaceholderText="sk-proj-... (Paste OpenAI key)" 
                                     Height="32" 
+                                    PasswordChar="*"
                                     VerticalContentAlignment="Center"
                                     PasswordChanged="PasswordBox_PasswordChanged"/>
                 </Grid>
-
+ 
                 <!-- Anthropic -->
                 <Grid Margin="0,0,0,10">
                     <Grid.RowDefinitions>
@@ -67,6 +68,7 @@
                                     Grid.Row="1" 
                                     PlaceholderText="sk-ant-... (Paste Anthropic key)" 
                                     Height="32" 
+                                    PasswordChar="*"
                                     VerticalContentAlignment="Center"
                                     PasswordChanged="PasswordBox_PasswordChanged"/>
                 </Grid>
