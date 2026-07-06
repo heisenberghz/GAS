@@ -34,6 +34,7 @@ namespace GAS.App
 
         // Fix 1.1 / Phase 2: workspace path resolved dynamically via WorkspaceDetector
         private string _workspacePath = string.Empty;
+        private string _serverWorkingDirectory = AppDomain.CurrentDomain.BaseDirectory;
         // Fix 1.2: track restart attempts to avoid infinite crash loop
         private int _serverRestartAttempts = 0;
         // Fix 1.3: track the active session ID to mark it Completed
@@ -296,6 +297,9 @@ namespace GAS.App
                     
                     System.Diagnostics.Debug.WriteLine($"[AgentRun] Using workspace '{_workspacePath}' detected via {workspaceInfo.Method}");
 
+                    // Ensure the OpenCode server is running in the correct workspace directory
+                    await EnsureServerRunningInDirectoryAsync(_workspacePath);
+
                     // Persist the detected path so it becomes the default next time
                     if (settings.LastWorkspacePath != _workspacePath)
                     {
@@ -430,6 +434,67 @@ namespace GAS.App
             if (settings.AltModifier) parts.Add("Alt");
             parts.Add(settings.HotkeyKey);
             return string.Join("+", parts);
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private async Task EnsureServerRunningInDirectoryAsync(string directory)
+        {
+            if (_openCodeServer == null) return;
+
+            if (_openCodeServer.IsRunning && _serverWorkingDirectory == directory)
+            {
+                // Already running in the correct directory
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[App] Restarting OpenCode server in directory: {directory} (Previous: {_serverWorkingDirectory})");
+
+            // Stop server if running
+            if (_openCodeServer.IsRunning)
+            {
+                Dispatcher.Invoke(() => SetAppState(AppStateIcon.Thinking, "Restarting Engine..."));
+                if (_openCodeClient != null)
+                {
+                    _openCodeClient.EventReceived -= OnOpenCodeEventReceived;
+                    _openCodeClient.StopStreaming();
+                    _openCodeClient = null;
+                }
+                await _openCodeServer.StopAsync();
+            }
+
+            _serverWorkingDirectory = directory;
+
+            var binaryManager = new BinaryManager();
+            var (binaryPath, _) = binaryManager.ResolveBinary();
+            if (binaryPath == null)
+            {
+                throw new FileNotFoundException("OpenCode binary not found");
+            }
+
+            var env = new System.Collections.Generic.Dictionary<string, string>();
+            var openAi = _credentialStore.Read("OpenAiApiKey");
+            var anthropic = _credentialStore.Read("AnthropicApiKey");
+            var gemini = _credentialStore.Read("GeminiApiKey");
+            var openRouter = _credentialStore.Read("OpenRouterApiKey");
+            var zen = _credentialStore.Read("ZenApiKey");
+            var ollama = _credentialStore.Read("OllamaEndpoint");
+
+            if (!string.IsNullOrEmpty(openAi)) env["OPENAI_API_KEY"] = openAi;
+            if (!string.IsNullOrEmpty(anthropic)) env["ANTHROPIC_API_KEY"] = anthropic;
+            if (!string.IsNullOrEmpty(gemini)) env["GEMINI_API_KEY"] = gemini;
+            if (!string.IsNullOrEmpty(openRouter)) env["OPENROUTER_API_KEY"] = openRouter;
+            if (!string.IsNullOrEmpty(zen)) env["ZEN_API_KEY"] = zen;
+            if (!string.IsNullOrEmpty(ollama)) env["OLLAMA_HOST"] = ollama;
+
+            await _openCodeServer.StartAsync(binaryPath, directory, env);
+
+            // Wait a moment for _openCodeClient to be initialized by OnServerUrlDetected
+            int waitMs = 0;
+            while (_openCodeClient == null && waitMs < 8000)
+            {
+                await Task.Delay(100);
+                waitMs += 100;
+            }
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -647,7 +712,7 @@ namespace GAS.App
                         var (binaryPath, _) = binaryManager.ResolveBinary();
                         if (binaryPath != null)
                         {
-                            var workingDir = AppDomain.CurrentDomain.BaseDirectory;
+                            var workingDir = string.IsNullOrEmpty(_serverWorkingDirectory) ? AppDomain.CurrentDomain.BaseDirectory : _serverWorkingDirectory;
                             await _openCodeServer!.StartAsync(binaryPath, workingDir);
                             _serverRestartAttempts = 0;
                         }
