@@ -251,10 +251,7 @@ namespace GAS.App
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
 
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-        private uint _lastActiveProcessId;
+        private IntPtr _lastForegroundHwnd;
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private void OnHotkeyPressed()
@@ -266,9 +263,8 @@ namespace GAS.App
             }
             else
             {
-                IntPtr fg = GetForegroundWindow();
-                GetWindowThreadProcessId(fg, out _lastActiveProcessId);
-                System.Diagnostics.Debug.WriteLine($"[Hotkey] Captured foreground process ID: {_lastActiveProcessId}");
+                _lastForegroundHwnd = GetForegroundWindow();
+                System.Diagnostics.Debug.WriteLine($"[Hotkey] Captured foreground HWND: {_lastForegroundHwnd}");
                 
                 _commandBar.ShowCommandBar();
             }
@@ -289,16 +285,16 @@ namespace GAS.App
             {
                 try
                 {
-                    // Resolve workspace: saved setting → VS Code → Visual Studio → home dir
+                    // Resolve workspace using the foreground HWND captured at hotkey time
                     var settings = SettingsManager.Load();
                     
-                    uint targetPid = 0;
-                    Dispatcher.Invoke(() => targetPid = _lastActiveProcessId);
+                    IntPtr hwnd = IntPtr.Zero;
+                    Dispatcher.Invoke(() => hwnd = _lastForegroundHwnd);
 
-                    var workspaceInfo = WorkspaceDetector.Detect(settings.LastWorkspacePath, targetPid);
+                    var workspaceInfo = WorkspaceDetector.Detect(settings.LastWorkspacePath, hwnd);
                     _workspacePath = workspaceInfo.Path;
                     
-                    System.Diagnostics.Debug.WriteLine($"[AgentRun] Using workspace {_workspacePath} detected via {workspaceInfo.Method} (PID: {targetPid})");
+                    System.Diagnostics.Debug.WriteLine($"[AgentRun] Using workspace '{_workspacePath}' detected via {workspaceInfo.Method}");
 
                     // Persist the detected path so it becomes the default next time
                     if (settings.LastWorkspacePath != _workspacePath)

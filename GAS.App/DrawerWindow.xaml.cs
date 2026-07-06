@@ -314,15 +314,9 @@ namespace GAS.App
                 Padding = new Thickness(12, 10, 12, 10)
             };
 
-            var textBlock = new TextBlock
-            {
-                Text = text,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = Brushes.White,
-                FontSize = 13
-            };
+            var textBox = CreateSelectableTextBox(text, Brushes.White);
 
-            border.Child = textBlock;
+            border.Child = textBox;
             MockMessagesPanel.Children.Add(border);
             ScrollToBottom();
         }
@@ -331,10 +325,10 @@ namespace GAS.App
         {
             if (_trackedMessageBubbles.TryGetValue(partID, out var existingBorder))
             {
-                var textBlock = FindVisualChild<TextBlock>(existingBorder);
-                if (textBlock != null)
+                var textBox = FindVisualChild<TextBox>(existingBorder);
+                if (textBox != null)
                 {
-                    textBlock.Text = text;
+                    textBox.Text = text;
                 }
                 return;
             }
@@ -366,13 +360,7 @@ namespace GAS.App
                 stack.Children.Add(label);
             }
 
-            var body = new TextBlock
-            {
-                Text = text,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = new SolidColorBrush(Color.FromRgb(209, 213, 219)),
-                FontSize = 13
-            };
+            var body = CreateSelectableTextBox(text, new SolidColorBrush(Color.FromRgb(209, 213, 219)));
             stack.Children.Add(body);
 
             border.Child = stack;
@@ -388,10 +376,10 @@ namespace GAS.App
         {
             if (_trackedMessageBubbles.TryGetValue(partID, out var existingBorder))
             {
-                var textBlock = FindVisualChild<TextBlock>(existingBorder);
-                if (textBlock != null)
+                var textBox = FindVisualChild<TextBox>(existingBorder);
+                if (textBox != null)
                 {
-                    textBlock.Text += delta;
+                    textBox.Text += delta;
                 }
                 ScrollToBottom();
             }
@@ -514,6 +502,35 @@ namespace GAS.App
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to save log entry: {ex.Message}");
             }
+        }
+        /// <summary>
+        /// Creates a read-only TextBox styled to look like a TextBlock, but with
+        /// full text selection support (Ctrl+C, right-click → Copy).
+        /// </summary>
+        private TextBox CreateSelectableTextBox(string text, Brush foreground)
+        {
+            var textBox = new TextBox
+            {
+                Text = text,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = foreground,
+                FontSize = 13,
+                IsReadOnly = true,
+                BorderThickness = new Thickness(0),
+                Background = Brushes.Transparent,
+                Padding = new Thickness(0),
+                // Remove the default focus rectangle
+                FocusVisualStyle = null,
+                // Allow cursor to appear for selection, but don't show blinking caret
+                CaretBrush = Brushes.Transparent,
+                // Ensure the selection is visible (highlighted) even when not focused
+                SelectionBrush = new SolidColorBrush(Color.FromArgb(100, 99, 102, 241)),
+            };
+
+            // Prevent the TextBox from showing its default blue focus border
+            textBox.GotFocus += (s, e) => { };
+
+            return textBox;
         }
 
         private void ScrollToBottom()
