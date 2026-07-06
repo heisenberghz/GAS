@@ -248,6 +248,14 @@ namespace GAS.App
             OnHotkeyPressed();
         }
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        private uint _lastActiveProcessId;
+
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private void OnHotkeyPressed()
         {
@@ -258,6 +266,10 @@ namespace GAS.App
             }
             else
             {
+                IntPtr fg = GetForegroundWindow();
+                GetWindowThreadProcessId(fg, out _lastActiveProcessId);
+                System.Diagnostics.Debug.WriteLine($"[Hotkey] Captured foreground process ID: {_lastActiveProcessId}");
+                
                 _commandBar.ShowCommandBar();
             }
         }
@@ -279,7 +291,14 @@ namespace GAS.App
                 {
                     // Resolve workspace: saved setting → VS Code → Visual Studio → home dir
                     var settings = SettingsManager.Load();
-                    _workspacePath = WorkspaceDetector.Detect(settings.LastWorkspacePath);
+                    
+                    uint targetPid = 0;
+                    Dispatcher.Invoke(() => targetPid = _lastActiveProcessId);
+
+                    var workspaceInfo = WorkspaceDetector.Detect(settings.LastWorkspacePath, targetPid);
+                    _workspacePath = workspaceInfo.Path;
+                    
+                    System.Diagnostics.Debug.WriteLine($"[AgentRun] Using workspace {_workspacePath} detected via {workspaceInfo.Method} (PID: {targetPid})");
 
                     // Persist the detected path so it becomes the default next time
                     if (settings.LastWorkspacePath != _workspacePath)

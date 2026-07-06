@@ -12,46 +12,58 @@ namespace GAS.Core
     /// 3. Saved LastWorkspacePath from settings (if directory still exists)
     /// 4. User home directory as final fallback
     /// </summary>
+    public class WorkspaceInfo
+    {
+        public string Path { get; set; } = string.Empty;
+        public string Method { get; set; } = string.Empty;
+    }
+
     public static class WorkspaceDetector
     {
-        /// <summary>
-        /// Returns the best workspace path available.
-        /// Pass the saved LastWorkspacePath from settings (or null/empty).
-        /// </summary>
-        public static string Detect(string? savedPath)
+        public static WorkspaceInfo Detect(string? savedPath, uint targetProcessId = 0)
         {
-            // 1. Try VS Code
-            var vsCodePath = TryGetVsCodeFolder();
+            var vsCodePath = TryGetVsCodeFolder(targetProcessId);
             if (vsCodePath != null)
-                return vsCodePath;
+            {
+                System.Diagnostics.Debug.WriteLine($"[WorkspaceDetector] Found via VS Code: {vsCodePath}");
+                return new WorkspaceInfo { Path = vsCodePath, Method = "VS Code" };
+            }
 
-            // 2. Try Visual Studio
-            var vsPath = TryGetVisualStudioFolder();
+            var vsPath = TryGetVisualStudioFolder(targetProcessId);
             if (vsPath != null)
-                return vsPath;
+            {
+                System.Diagnostics.Debug.WriteLine($"[WorkspaceDetector] Found via Visual Studio: {vsPath}");
+                return new WorkspaceInfo { Path = vsPath, Method = "Visual Studio" };
+            }
 
-#pragma warning disable CA1416 // Validate platform compatibility
-            // 3. Try File Explorer
-            var explorerPath = TryGetFileExplorerFolder();
+#pragma warning disable CA1416
+            var explorerPath = TryGetFileExplorerFolder(targetProcessId);
             if (explorerPath != null)
-                return explorerPath;
+            {
+                System.Diagnostics.Debug.WriteLine($"[WorkspaceDetector] Found via File Explorer: {explorerPath}");
+                return new WorkspaceInfo { Path = explorerPath, Method = "File Explorer" };
+            }
 #pragma warning restore CA1416
 
-            // 4. Use the saved path if it still exists on disk
             if (!string.IsNullOrWhiteSpace(savedPath) && Directory.Exists(savedPath))
-                return savedPath;
+            {
+                System.Diagnostics.Debug.WriteLine($"[WorkspaceDetector] Found via Saved Settings: {savedPath}");
+                return new WorkspaceInfo { Path = savedPath, Method = "Saved Settings" };
+            }
 
-            // 5. Fall back to user home directory
-            return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var fallback = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            System.Diagnostics.Debug.WriteLine($"[WorkspaceDetector] Fallback to Home Directory: {fallback}");
+            return new WorkspaceInfo { Path = fallback, Method = "Home Directory" };
         }
 
-        private static string? TryGetVsCodeFolder()
+        private static string? TryGetVsCodeFolder(uint targetProcessId)
         {
             try
             {
                 var codeProcesses = Process.GetProcessesByName("Code");
                 foreach (var p in codeProcesses)
                 {
+                    if (targetProcessId > 0 && p.Id != targetProcessId) continue;
                     try
                     {
                         var cmdLine = GetCommandLine(p.Id);
@@ -75,13 +87,14 @@ namespace GAS.Core
             return null;
         }
 
-        private static string? TryGetVisualStudioFolder()
+        private static string? TryGetVisualStudioFolder(uint targetProcessId)
         {
             try
             {
                 var vsProcesses = Process.GetProcessesByName("devenv");
                 foreach (var p in vsProcesses)
                 {
+                    if (targetProcessId > 0 && p.Id != targetProcessId) continue;
                     try
                     {
                         var cmdLine = GetCommandLine(p.Id);
@@ -105,8 +118,11 @@ namespace GAS.Core
             return null;
         }
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        private static string? TryGetFileExplorerFolder()
+        private static string? TryGetFileExplorerFolder(uint targetProcessId)
         {
             try
             {
@@ -126,6 +142,17 @@ namespace GAS.Core
                     {
                         object? window = windows.GetType().InvokeMember("Item", System.Reflection.BindingFlags.InvokeMethod, null, windows, new object[] { i });
                         if (window == null) continue;
+
+                        if (targetProcessId > 0)
+                        {
+                            var hwndObj = window.GetType().InvokeMember("HWND", System.Reflection.BindingFlags.GetProperty, null, window, null);
+                            if (hwndObj is long hwndLong || hwndObj is int hwndInt) // Usually long on 64-bit
+                            {
+                                IntPtr hwnd = new IntPtr(Convert.ToInt64(hwndObj));
+                                GetWindowThreadProcessId(hwnd, out uint pid);
+                                if (pid != targetProcessId) continue;
+                            }
+                        }
 
                         string? name = window.GetType().InvokeMember("Name", System.Reflection.BindingFlags.GetProperty, null, window, null) as string;
                         if (name == "File Explorer" || name == "Windows Explorer")
