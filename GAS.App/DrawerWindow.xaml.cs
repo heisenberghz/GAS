@@ -441,13 +441,11 @@ namespace GAS.App
                 };
                 stack.Children.Add(headerBlock);
 
-                var detailBlock = new TextBlock
-                {
-                    Text = string.IsNullOrEmpty(input) ? "Executing tool..." : input,
-                    FontSize = 11,
-                    Foreground = new SolidColorBrush(Color.FromRgb(138, 138, 138)),
-                    TextWrapping = TextWrapping.Wrap
-                };
+                var detailBlock = CreateSelectableTextBox(
+                    string.IsNullOrEmpty(input) ? "Executing tool..." : input,
+                    new SolidColorBrush(Color.FromRgb(138, 138, 138))
+                );
+                detailBlock.FontSize = 11;
                 stack.Children.Add(detailBlock);
 
                 grid.Children.Add(stack);
@@ -473,9 +471,11 @@ namespace GAS.App
                     textBlocks[1].Text = $"{toolName} ({status})";
                     textBlocks[1].Foreground = new SolidColorBrush(statusColor);
                 }
-                if (textBlocks.Count > 2 && !string.IsNullOrEmpty(output))
+
+                var textBox = FindVisualChild<TextBox>(card);
+                if (textBox != null && !string.IsNullOrEmpty(output))
                 {
-                    textBlocks[2].Text = output;
+                    textBox.Text = output;
                 }
             }
 
