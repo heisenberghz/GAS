@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -7,9 +7,9 @@ namespace GAS.Core
 {
     /// <summary>
     /// Detects the current workspace directory using a priority chain:
-    /// 1. Saved LastWorkspacePath from settings (if directory still exists)
-    /// 2. Active VS Code window folder (via process command line)
-    /// 3. Active Visual Studio solution directory (via process command line)
+    /// 1. Active VS Code window folder (via process command line)
+    /// 2. Active Visual Studio solution directory (via process command line)
+    /// 3. Saved LastWorkspacePath from settings (if directory still exists)
     /// 4. User home directory as final fallback
     /// </summary>
     public static class WorkspaceDetector
@@ -20,21 +20,28 @@ namespace GAS.Core
         /// </summary>
         public static string Detect(string? savedPath)
         {
-            // 1. Use the saved path if it still exists on disk
-            if (!string.IsNullOrWhiteSpace(savedPath) && Directory.Exists(savedPath))
-                return savedPath;
-
-            // 2. Try VS Code
+            // 1. Try VS Code
             var vsCodePath = TryGetVsCodeFolder();
             if (vsCodePath != null)
                 return vsCodePath;
 
-            // 3. Try Visual Studio
+            // 2. Try Visual Studio
             var vsPath = TryGetVisualStudioFolder();
             if (vsPath != null)
                 return vsPath;
 
-            // 4. Fall back to user home directory
+#pragma warning disable CA1416 // Validate platform compatibility
+            // 3. Try File Explorer
+            var explorerPath = TryGetFileExplorerFolder();
+            if (explorerPath != null)
+                return explorerPath;
+#pragma warning restore CA1416
+
+            // 4. Use the saved path if it still exists on disk
+            if (!string.IsNullOrWhiteSpace(savedPath) && Directory.Exists(savedPath))
+                return savedPath;
+
+            // 5. Fall back to user home directory
             return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         }
 
@@ -95,6 +102,57 @@ namespace GAS.Core
                 }
             }
             catch { /* access denied */ }
+            return null;
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private static string? TryGetFileExplorerFolder()
+        {
+            try
+            {
+                Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+                if (shellType == null) return null;
+
+                object? shell = Activator.CreateInstance(shellType);
+                if (shell == null) return null;
+
+                object? windows = shellType.InvokeMember("Windows", System.Reflection.BindingFlags.InvokeMethod, null, shell, null);
+                if (windows == null) return null;
+
+                int count = (int)(windows.GetType().InvokeMember("Count", System.Reflection.BindingFlags.GetProperty, null, windows, null) ?? 0);
+                for (int i = 0; i < count; i++)
+                {
+                    try
+                    {
+                        object? window = windows.GetType().InvokeMember("Item", System.Reflection.BindingFlags.InvokeMethod, null, windows, new object[] { i });
+                        if (window == null) continue;
+
+                        string? name = window.GetType().InvokeMember("Name", System.Reflection.BindingFlags.GetProperty, null, window, null) as string;
+                        if (name == "File Explorer" || name == "Windows Explorer")
+                        {
+                            object? document = window.GetType().InvokeMember("Document", System.Reflection.BindingFlags.GetProperty, null, window, null);
+                            if (document != null)
+                            {
+                                object? folder = document.GetType().InvokeMember("Folder", System.Reflection.BindingFlags.GetProperty, null, document, null);
+                                if (folder != null)
+                                {
+                                    object? self = folder.GetType().InvokeMember("Self", System.Reflection.BindingFlags.GetProperty, null, folder, null);
+                                    if (self != null)
+                                    {
+                                        string? path = self.GetType().InvokeMember("Path", System.Reflection.BindingFlags.GetProperty, null, self, null) as string;
+                                        if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+                                        {
+                                            return path;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { /* Skip window if access fails */ }
+                }
+            }
+            catch { /* COM not available */ }
             return null;
         }
 
