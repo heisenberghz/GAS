@@ -289,6 +289,7 @@ namespace GAS.App
                     }
 
                     string sessionId;
+                    Guid localSessionId;
                     if (!string.IsNullOrEmpty(existingSessionId))
                     {
                         sessionId = existingSessionId;
@@ -296,11 +297,16 @@ namespace GAS.App
                         // Update status to Running in DB
                         using (var db = new GASDbContext())
                         {
-                            var existing = await db.Sessions.FindAsync(Guid.Parse(sessionId));
+                            var existing = db.Sessions.FirstOrDefault(s => s.OpenCodeSessionId == sessionId);
                             if (existing != null)
                             {
+                                localSessionId = existing.Id;
                                 existing.Status = SessionStatus.Running;
                                 await db.SaveChangesAsync();
+                            }
+                            else
+                            {
+                                localSessionId = Guid.NewGuid();
                             }
                         }
                     }
@@ -309,13 +315,15 @@ namespace GAS.App
                         // 1. Create session on OpenCode server
                         var sessionInfo = await _openCodeClient.CreateSessionAsync(prompt);
                         sessionId = sessionInfo.id;
+                        localSessionId = Guid.NewGuid();
                         
                         // 2. Insert into SQLite DB
                         using (var db = new GASDbContext())
                         {
                             var newSession = new Session
                             {
-                                Id = Guid.Parse(sessionId),
+                                Id = localSessionId,
+                                OpenCodeSessionId = sessionId,
                                 Intent = prompt,
                                 Status = SessionStatus.Running,
                                 ProjectPath = _workspacePath
@@ -331,11 +339,11 @@ namespace GAS.App
                     {
                         if (string.IsNullOrEmpty(existingSessionId))
                         {
-                            _drawer?.OnNewSessionStarted(sessionId, prompt);
+                            _drawer?.OnNewSessionStarted(sessionId, localSessionId, prompt);
                         }
                         else
                         {
-                            _drawer?.OnSessionResumed(sessionId);
+                            _drawer?.OnSessionResumed(sessionId, localSessionId);
                         }
                     });
 

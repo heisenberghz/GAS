@@ -57,6 +57,7 @@ namespace GAS.App
 
         private bool _isIntendedVisible;
         private string? _activeSessionId;
+        private Guid? _activeLocalSessionId;
         private readonly Dictionary<string, Border> _trackedMessageBubbles = new();
         private readonly Dictionary<string, Border> _trackedToolCards = new();
 
@@ -172,6 +173,7 @@ namespace GAS.App
                 var displayList = sessions.Select(s => new SessionDisplayItem
                 {
                     Id = s.Id.ToString(),
+                    OpenCodeSessionId = s.OpenCodeSessionId,
                     Intent = s.Intent,
                     DateStr = s.CreatedAt.ToString("MMMM dd, h:mm tt"),
                     Icon = s.Status == SessionStatus.Completed ? Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24 : Wpf.Ui.Controls.SymbolRegular.Record24,
@@ -189,9 +191,10 @@ namespace GAS.App
         /// <summary>
         /// Initializes the UI for a new active session.
         /// </summary>
-        public void OnNewSessionStarted(string sessionId, string prompt)
+        public void OnNewSessionStarted(string sessionId, Guid localSessionId, string prompt)
         {
             _activeSessionId = sessionId;
+            _activeLocalSessionId = localSessionId;
             _trackedMessageBubbles.Clear();
             _trackedToolCards.Clear();
             MockMessagesPanel.Children.Clear();
@@ -494,13 +497,13 @@ namespace GAS.App
 
         private void SaveLogToDatabase(string kind, string content)
         {
-            if (string.IsNullOrEmpty(_activeSessionId)) return;
+            if (!_activeLocalSessionId.HasValue) return;
             try
             {
                 using var db = new GASDbContext();
                 var log = new LogEntry
                 {
-                    SessionId = Guid.Parse(_activeSessionId),
+                    SessionId = _activeLocalSessionId.Value,
                     Kind = kind,
                     RawJson = content
                 };
@@ -558,7 +561,16 @@ namespace GAS.App
         {
             if (MockSessionsList.SelectedItem is SessionDisplayItem selected)
             {
-                _activeSessionId = selected.Id;
+                _activeSessionId = selected.OpenCodeSessionId;
+                if (Guid.TryParse(selected.Id, out var localId))
+                {
+                    _activeLocalSessionId = localId;
+                }
+                else
+                {
+                    _activeLocalSessionId = null;
+                }
+
                 _trackedMessageBubbles.Clear();
                 _trackedToolCards.Clear();
                 MockMessagesPanel.Children.Clear();
@@ -669,9 +681,13 @@ namespace GAS.App
             }
         }
 
-        public void OnSessionResumed(string sessionId)
+        /// <summary>
+        /// Prepares the UI when an existing session is resumed from the command bar.
+        /// </summary>
+        public void OnSessionResumed(string sessionId, Guid localSessionId)
         {
             _activeSessionId = sessionId;
+            _activeLocalSessionId = localSessionId;
             _trackedMessageBubbles.Clear();
             _trackedToolCards.Clear();
             MockMessagesPanel.Children.Clear();
@@ -751,6 +767,7 @@ namespace GAS.App
         public class SessionDisplayItem
         {
             public string Id { get; set; } = string.Empty;
+            public string? OpenCodeSessionId { get; set; }
             public string Intent { get; set; } = string.Empty;
             public string DateStr { get; set; } = string.Empty;
             public Wpf.Ui.Controls.SymbolRegular Icon { get; set; }
