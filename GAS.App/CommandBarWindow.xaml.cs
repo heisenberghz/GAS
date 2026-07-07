@@ -69,6 +69,58 @@ namespace GAS.App
         }
 
         /// <summary>
+        /// Updates the workspace breadcrumb and provider chip shown at the bottom of the command bar.
+        /// Call this just before ShowCommandBar() so the user always sees current context.
+        /// </summary>
+        /// <param name="workspacePath">Full path of the detected workspace (e.g. D:\Projects\MyAPI).</param>
+        /// <param name="providerName">Friendly name of the active provider/model (e.g. "Claude 3.5 Sonnet").</param>
+        public void UpdateContext(string? workspacePath, string? providerName)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // --- Workspace breadcrumb ---
+                if (!string.IsNullOrWhiteSpace(workspacePath))
+                {
+                    var name = System.IO.Path.GetFileName(workspacePath.TrimEnd('\\', '/'));
+                    if (string.IsNullOrEmpty(name)) name = workspacePath;
+                    WorkspaceNameLabel.Text = name;
+                    WorkspacePathLabel.Text = workspacePath;
+                }
+                else
+                {
+                    WorkspaceNameLabel.Text = "No workspace";
+                    WorkspacePathLabel.Text = string.Empty;
+                }
+
+                // --- Provider chip ---
+                if (!string.IsNullOrWhiteSpace(providerName))
+                {
+                    ProviderLabel.Text = providerName;
+                    // Color the dot based on the provider family
+                    var lower = providerName.ToLowerInvariant();
+                    string dotColor;
+                    if (lower.Contains("claude") || lower.Contains("anthropic"))
+                        dotColor = "#D97706";   // amber — Anthropic
+                    else if (lower.Contains("gemini") || lower.Contains("google"))
+                        dotColor = "#10B981";   // green — Google
+                    else if (lower.Contains("gpt") || lower.Contains("openai"))
+                        dotColor = "#3B82F6";   // blue — OpenAI
+                    else if (lower.Contains("ollama") || lower.Contains("zen"))
+                        dotColor = "#8B5CF6";   // violet — local models
+                    else
+                        dotColor = "#6366F1";   // indigo — unknown/default
+                    ProviderDot.Fill = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter()
+                        .ConvertFromString(dotColor)!;
+                }
+                else
+                {
+                    ProviderLabel.Text = "No model";
+                    ProviderDot.Fill = System.Windows.Media.Brushes.Gray;
+                }
+            });
+        }
+
+        /// <summary>
         /// Shows the Command Bar with a slide and fade transition.
         /// </summary>
         public void ShowCommandBar()

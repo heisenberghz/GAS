@@ -267,9 +267,51 @@ namespace GAS.App
             {
                 _lastForegroundHwnd = GetForegroundWindow();
                 System.Diagnostics.Debug.WriteLine($"[Hotkey] Captured foreground HWND: {_lastForegroundHwnd}");
-                
+
+                // Update context (workspace + provider) before showing the command bar
+                var workspacePath = string.IsNullOrEmpty(_workspacePath)
+                    ? _serverWorkingDirectory
+                    : _workspacePath;
+                _commandBar.UpdateContext(workspacePath, GetActiveProviderName());
+
                 _commandBar.ShowCommandBar();
             }
+        }
+
+        /// <summary>
+        /// Returns a friendly provider/model name based on which API key is configured.
+        /// </summary>
+        private string GetActiveProviderName()
+        {
+            if (_credentialStore == null) return "No model";
+
+            var anthropic = _credentialStore.Read("AnthropicApiKey");
+            if (!string.IsNullOrEmpty(anthropic)) return "Claude";
+
+            var openai = _credentialStore.Read("OpenAiApiKey");
+            if (!string.IsNullOrEmpty(openai)) return "GPT-4o";
+
+            var gemini = _credentialStore.Read("GeminiApiKey");
+            if (!string.IsNullOrEmpty(gemini)) return "Gemini";
+
+            var ollama = _credentialStore.Read("OllamaBaseUrl");
+            if (!string.IsNullOrEmpty(ollama)) return "Ollama";
+
+            return "No model";
+        }
+
+        /// <summary>
+        /// Classifies the risk level of a permission type for the Approval window.
+        /// </summary>
+        private static string GetRiskLevel(string permissionType)
+        {
+            var lower = permissionType.ToLowerInvariant();
+            if (lower.Contains("delete") || lower.Contains("bash") || lower.Contains("terminal")
+                || lower.Contains("git push") || lower.Contains("git reset") || lower.Contains("rm "))
+                return "High";
+            if (lower.Contains("read") || lower.Contains("list") || lower.Contains("search"))
+                return "Low";
+            return "Medium";
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -695,7 +737,13 @@ namespace GAS.App
                             BalloonIcon.Warning
                         );
                         
-                        var approvalWin = new ApprovalWindow(requestId, permissionType, detail);
+                        var approvalWin = new ApprovalWindow(
+                            requestId,
+                            permissionType,
+                            detail,
+                            workingDir: _serverWorkingDirectory,
+                            riskLevel: GetRiskLevel(permissionType ?? string.Empty)
+                        );
                         var result = approvalWin.ShowDialog();
                         var decision = approvalWin.UserDecision; // allow, deny, always
 

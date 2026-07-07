@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="GAS Command Bar"
-        Width="720"
-        Height="140"
+        Width="680"
+        Height="120"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -16,25 +16,25 @@
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
-        <!-- Fade-in & Slide-down Storyboard -->
+        <!-- Fade-in & Slide-down — 120ms -->
         <Storyboard x:Key="ShowStoryboard">
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="Opacity"
-                             From="0" To="1" Duration="0:0:0.15">
+                             From="0" To="1" Duration="0:0:0.12">
                 <DoubleAnimation.EasingFunction>
                     <QuadraticEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="BorderTransform"
                              Storyboard.TargetProperty="Y"
-                             From="-15" To="0" Duration="0:0:0.15">
+                             From="-12" To="0" Duration="0:0:0.12">
                 <DoubleAnimation.EasingFunction>
                     <QuadraticEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
 
-        <!-- Fade-out & Slide-up Storyboard -->
+        <!-- Fade-out & Slide-up — 100ms -->
         <Storyboard x:Key="HideStoryboard" Completed="HideStoryboard_Completed">
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="Opacity"
@@ -45,7 +45,7 @@
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="BorderTransform"
                              Storyboard.TargetProperty="Y"
-                             From="0" To="-15" Duration="0:0:0.1">
+                             From="0" To="-12" Duration="0:0:0.1">
                 <DoubleAnimation.EasingFunction>
                     <QuadraticEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
@@ -54,56 +54,130 @@
     </Window.Resources>
 
     <Grid>
-        <!-- Main Container Border with drop shadow margin -->
+        <!-- Main Capsule Container -->
         <Border x:Name="MainBorder"
                 Margin="20"
-                Background="#1F1F1FD9"
-                BorderBrush="#3D3D3D"
+                Background="#EB0F0F12"
+                BorderBrush="#2A2A34"
                 BorderThickness="1"
-                CornerRadius="12"
+                CornerRadius="22"
                 Opacity="0">
             <Border.RenderTransform>
-                <TranslateTransform x:Name="BorderTransform" Y="-15"/>
+                <TranslateTransform x:Name="BorderTransform" Y="-12"/>
             </Border.RenderTransform>
             <Border.Effect>
                 <DropShadowEffect Color="Black"
                                   Direction="270"
-                                  ShadowDepth="5"
-                                  BlurRadius="25"
-                                  Opacity="0.5"/>
+                                  ShadowDepth="4"
+                                  BlurRadius="16"
+                                  Opacity="0.35"/>
             </Border.Effect>
 
-            <!-- Input Bar Grid -->
-            <Grid VerticalAlignment="Center" Height="50" Margin="5,0,5,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+            <Grid Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>      <!-- Input row -->
+                    <RowDefinition Height="Auto"/>   <!-- Context breadcrumb row -->
+                </Grid.RowDefinitions>
 
-                <!-- Search Icon -->
-                <ui:SymbolIcon Symbol="Search24"
-                               FontSize="20"
-                               Foreground="#8A8A8A"
-                               Margin="15,0,5,0"
-                               VerticalAlignment="Center"
-                               Grid.Column="0"/>
+                <!-- Input Row -->
+                <Grid Grid.Row="0" VerticalAlignment="Center" Height="50" Margin="6,0,6,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                <!-- Prompt Input TextBox -->
-                <ui:TextBox x:Name="InputTextBox"
-                            Grid.Column="1"
-                            PlaceholderText="What's the plan?"
-                            FontSize="18"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Foreground="White"
-                            VerticalContentAlignment="Center"
-                            Margin="5,0,15,0"
-                            Height="44"
-                            ClearButtonEnabled="False"
-                            GotFocus="InputTextBox_GotFocus"
-                            PreviewKeyDown="InputTextBox_PreviewKeyDown"/>
+                    <!-- Search/Brain Icon -->
+                    <ui:SymbolIcon Symbol="Search24"
+                                   FontSize="18"
+                                   Foreground="#64748B"
+                                   Margin="16,0,4,0"
+                                   VerticalAlignment="Center"
+                                   Grid.Column="0"/>
+
+                    <!-- Prompt Input -->
+                    <ui:TextBox x:Name="InputTextBox"
+                                Grid.Column="1"
+                                PlaceholderText="Ask anything about your project..."
+                                FontSize="15"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#F1F5F9"
+                                VerticalContentAlignment="Center"
+                                Margin="4,0,14,0"
+                                Height="44"
+                                ClearButtonEnabled="False"
+                                GotFocus="InputTextBox_GotFocus"
+                                PreviewKeyDown="InputTextBox_PreviewKeyDown"/>
+                </Grid>
+
+                <!-- Context breadcrumb row: workspace path + provider chip -->
+                <Border Grid.Row="1"
+                        BorderBrush="#2A2A34"
+                        BorderThickness="0,1,0,0"
+                        CornerRadius="0,0,22,22"
+                        Background="#060609"
+                        Padding="18,7,14,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Workspace path breadcrumb -->
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE8B7;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="10"
+                                       Foreground="#475569"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,5,0"/>
+                            <TextBlock x:Name="WorkspaceNameLabel"
+                                       Text="No workspace"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="#64748B"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,4,0"/>
+                            <TextBlock Text="›"
+                                       FontSize="11"
+                                       Foreground="#334155"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,4,0"/>
+                            <TextBlock x:Name="WorkspacePathLabel"
+                                       Text=""
+                                       FontSize="11"
+                                       Foreground="#475569"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="320"/>
+                        </StackPanel>
+
+                        <!-- Provider chip -->
+                        <Border Grid.Column="1"
+                                x:Name="ProviderChipBorder"
+                                Background="#1E1E2E"
+                                BorderBrush="#2A2A34"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Padding="7,2,7,3"
+                                VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="ProviderDot"
+                                         Width="6" Height="6"
+                                         Fill="#6366F1"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,5,0"/>
+                                <TextBlock x:Name="ProviderLabel"
+                                           Text="No model"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           Foreground="#94A3B8"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
     </Grid>
 </Window>
-

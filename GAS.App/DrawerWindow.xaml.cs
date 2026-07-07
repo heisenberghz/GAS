@@ -9,6 +9,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using GAS.Core;
 using GAS.Core.Data;
 using GAS.Core.Models;
@@ -60,6 +61,12 @@ namespace GAS.App
         private Guid? _activeLocalSessionId;
         private readonly Dictionary<string, Border> _trackedMessageBubbles = new();
         private readonly Dictionary<string, Border> _trackedToolCards = new();
+
+        // Status strip state
+        private DispatcherTimer? _elapsedTimer;
+        private DateTime _sessionStartTime;
+        private string _activeModel = "No model";
+        private string _activeWorkspace = "No workspace";
 
         public DrawerWindow()
         {
@@ -199,9 +206,140 @@ namespace GAS.App
             _trackedToolCards.Clear();
             MockMessagesPanel.Children.Clear();
 
+            // Start elapsed timer
+            _sessionStartTime = DateTime.Now;
+            _elapsedTimer?.Stop();
+            _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _elapsedTimer.Tick += (s, e) =>
+            {
+                var elapsed = DateTime.Now - _sessionStartTime;
+                ElapsedLabel.Text = elapsed.TotalSeconds < 60
+                    ? $"{(int)elapsed.TotalSeconds}s"
+                    : $"{(int)elapsed.TotalMinutes}m {elapsed.Seconds}s";
+                ElapsedLabel.Visibility = Visibility.Visible;
+            };
+            _elapsedTimer.Start();
+
+            UpdateStatusStrip("Thinking", _activeModel, _activeWorkspace, null);
+
             // Render user's primary prompt
             AddUserMessageBubble(prompt);
             LoadSessionHistory();
+        }
+
+        /// <summary>
+        /// Updates the live status strip shown below the drawer header.
+        /// Call this whenever agent state, model, or workspace changes.
+        /// </summary>
+        public void UpdateStatusStrip(string state, string model, string workspace, TimeSpan? elapsed)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _activeModel = model ?? _activeModel;
+                _activeWorkspace = workspace ?? _activeWorkspace;
+
+                // State pill text and color
+                string stateText;
+                string stateColor;
+                string stateBorder;
+                switch (state?.ToLower())
+                {
+                    case "thinking":
+                        stateText = "⊙ Thinking";
+                        stateColor = "#D97706";    // amber
+                        stateBorder = "#92400E";
+                        break;
+                    case "executing":
+                        stateText = "⚙ Executing";
+                        stateColor = "#6366F1";    // indigo
+                        stateBorder = "#3730A3";
+                        break;
+                    case "waiting":
+                        stateText = "⏳ Waiting";
+                        stateColor = "#F59E0B";    // amber
+                        stateBorder = "#92400E";
+                        break;
+                    case "completed":
+                    case "idle":
+                        stateText = "● Idle";
+                        stateColor = "#475569";    // muted
+                        stateBorder = "#334155";
+                        _elapsedTimer?.Stop();
+                        ElapsedLabel.Visibility = Visibility.Collapsed;
+                        break;
+                    case "error":
+                        stateText = "✕ Error";
+                        stateColor = "#EF4444";    // red
+                        stateBorder = "#7F1D1D";
+                        _elapsedTimer?.Stop();
+                        ElapsedLabel.Visibility = Visibility.Collapsed;
+                        break;
+                    default:
+                        stateText = "● Idle";
+                        stateColor = "#475569";
+                        stateBorder = "#334155";
+                        break;
+                }
+
+                AgentStateLabel.Text = stateText;
+                AgentStateLabel.Foreground = (Brush)new BrushConverter().ConvertFromString(stateColor)!;
+                AgentStatePill.BorderBrush = (Brush)new BrushConverter().ConvertFromString(stateBorder)!;
+
+                StatusModelLabel.Text = _activeModel;
+                var workspaceName = System.IO.Path.GetFileName(_activeWorkspace.TrimEnd('\\', '/'));
+                StatusWorkspaceLabel.Text = string.IsNullOrEmpty(workspaceName) ? _activeWorkspace : workspaceName;
+
+                // Workspace header
+                WorkspaceNameText.Text = string.IsNullOrEmpty(workspaceName) ? "GAS" : workspaceName;
+                WorkspacePathText.Text = _activeWorkspace;
+
+                if (elapsed.HasValue)
+                {
+                    var e = elapsed.Value;
+                    ElapsedLabel.Text = e.TotalSeconds < 60
+                        ? $"{(int)e.TotalSeconds}s"
+                        : $"{(int)e.TotalMinutes}m {e.Seconds}s";
+                    ElapsedLabel.Visibility = Visibility.Visible;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Updates the connection status dot and path label in the drawer header.
+        /// </summary>
+        public void UpdateConnectionStatus(bool connected, string workspacePath)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                ConnectionDot.Fill = connected
+                    ? (Brush)new BrushConverter().ConvertFromString("#10B981")!   // green
+                    : (Brush)new BrushConverter().ConvertFromString("#F59E0B")!;  // amber reconnecting
+
+                WorkspacePathText.Text = connected ? workspacePath : "Reconnecting...";
+            });
+        }
+
+        /// <summary>
+        /// Maps an OpenCode tool name to a human-readable activity label and icon glyph.
+        /// </summary>
+        private static (string label, string icon) GetToolDisplayLabel(string? toolName)
+        {
+            return (toolName?.ToLowerInvariant() ?? "") switch
+            {
+                var t when t.Contains("read_file") || t.Contains("read")     => ("Reading file",        "\uE8A5"),  // Page icon
+                var t when t.Contains("write_file") || t.Contains("write")   => ("Writing file",        "\uE8D2"),  // Edit
+                var t when t.Contains("create_file") || t.Contains("create") => ("Creating file",       "\uE8A5"),
+                var t when t.Contains("delete_file") || t.Contains("delete") => ("Deleting file",       "\uE74D"),  // Trash
+                var t when t.Contains("list_dir") || t.Contains("directory") => ("Listing directory",   "\uE8B7"),  // Folder
+                var t when t.Contains("search")                              => ("Searching files",     "\uE721"),  // Search
+                var t when t.Contains("bash") || t.Contains("run_command")
+                         || t.Contains("execute")                            => ("Running command",     "\uE756"),  // Code
+                var t when t.Contains("browser")                             => ("Browser automation", "\uE774"),  // Globe
+                var t when t.Contains("git")                                 => ("Git operation",       "\uE8B3"),  // Branch-like
+                var t when t.Contains("patch") || t.Contains("edit")        => ("Editing file",        "\uE8D2"),
+                var t when t.Contains("glob")                                => ("Searching files",     "\uE721"),
+                _                                                             => (toolName ?? "Tool",   "\uE8B7")
+            };
         }
 
         /// <summary>
@@ -307,14 +445,15 @@ namespace GAS.App
             var border = new Border
             {
                 Background = new SolidColorBrush(Color.FromRgb(99, 102, 241)), // Indigo #6366F1
-                CornerRadius = new CornerRadius(12, 12, 0, 12),
+                CornerRadius = new CornerRadius(14, 14, 0, 14),
                 HorizontalAlignment = HorizontalAlignment.Right,
-                MaxWidth = 280,
-                Margin = new Thickness(0, 5, 0, 5),
-                Padding = new Thickness(12, 10, 12, 10)
+                MaxWidth = 300,
+                Margin = new Thickness(0, 4, 0, 4),
+                Padding = new Thickness(14, 10, 14, 10)
             };
 
             var textBox = CreateSelectableTextBox(text, Brushes.White);
+            textBox.FontFamily = new FontFamily("Segoe UI Variable Text");
 
             border.Child = textBox;
             MockMessagesPanel.Children.Add(border);
@@ -333,37 +472,76 @@ namespace GAS.App
                 return;
             }
 
-            var border = new Border
-            {
-                Background = new SolidColorBrush(Color.FromRgb(43, 43, 43)), // Dark grey
-                CornerRadius = isReasoning ? new CornerRadius(12, 12, 12, 0) : new CornerRadius(12, 12, 12, 0),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                MaxWidth = 280,
-                Margin = new Thickness(0, 5, 0, 5),
-                Padding = new Thickness(12, 10, 12, 10),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(61, 61, 61)),
-                BorderThickness = new Thickness(1)
-            };
-
-            var stack = new StackPanel();
+            Border border;
 
             if (isReasoning)
             {
+                // Reasoning: left amber accent stripe
+                var outerBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(24, 24, 29)),  // #18181D
+                    CornerRadius = new CornerRadius(14, 14, 14, 0),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    MaxWidth = 300,
+                    Margin = new Thickness(0, 4, 0, 4),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 52)),  // #2A2A34
+                    BorderThickness = new Thickness(1)
+                };
+
+                var innerGrid = new Grid();
+                innerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3) }); // amber stripe
+                innerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var stripe = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(245, 158, 11)), // amber
+                    CornerRadius = new CornerRadius(14, 0, 0, 0),
+                    Margin = new Thickness(0)
+                };
+                Grid.SetColumn(stripe, 0);
+                innerGrid.Children.Add(stripe);
+
+                var contentStack = new StackPanel { Margin = new Thickness(10, 10, 12, 10) };
+                Grid.SetColumn(contentStack, 1);
+
                 var label = new TextBlock
                 {
-                    Text = "Agent Thoughts:",
+                    Text = "\uD83E\uDDE0 Reasoning",
                     FontSize = 10,
-                    FontWeight = FontWeights.Bold,
-                    Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11)), // Orange
-                    Margin = new Thickness(0, 0, 0, 4)
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11)), // amber
+                    Margin = new Thickness(0, 0, 0, 5)
                 };
-                stack.Children.Add(label);
+                contentStack.Children.Add(label);
+
+                var body = CreateSelectableTextBox(text, new SolidColorBrush(Color.FromRgb(148, 163, 184))); // #94A3B8
+                body.FontFamily = new FontFamily("Segoe UI Variable Text");
+                contentStack.Children.Add(body);
+
+                innerGrid.Children.Add(contentStack);
+                outerBorder.Child = innerGrid;
+                border = outerBorder;
+            }
+            else
+            {
+                // Regular agent message
+                border = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(24, 24, 29)),  // #18181D
+                    CornerRadius = new CornerRadius(14, 14, 14, 0),
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    MaxWidth = 300,
+                    Margin = new Thickness(0, 4, 0, 4),
+                    Padding = new Thickness(14, 10, 14, 10),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 52)),  // #2A2A34
+                    BorderThickness = new Thickness(1)
+                };
+
+                var body = CreateSelectableTextBox(text, new SolidColorBrush(Color.FromRgb(226, 232, 240))); // #E2E8F0
+                body.FontFamily = new FontFamily("Segoe UI Variable Text");
+                border.Child = body;
             }
 
-            var body = CreateSelectableTextBox(text, new SolidColorBrush(Color.FromRgb(209, 213, 219)));
-            stack.Children.Add(body);
-
-            border.Child = stack;
             MockMessagesPanel.Children.Add(border);
             _trackedMessageBubbles[partID] = border;
 
@@ -389,98 +567,156 @@ namespace GAS.App
             }
         }
 
-        private void AddOrUpdateToolCard(string toolCallID, string toolName, string status, string input, string output)
+        private void AddOrUpdateToolCard(string toolCallID, string? toolName, string? status, string? input, string? output)
         {
             var isNew = !_trackedToolCards.TryGetValue(toolCallID, out var card);
-            
-            var statusColor = status == "completed" ? Color.FromRgb(16, 185, 129) : // Green
-                              status == "error" ? Color.FromRgb(239, 68, 68) : // Red
-                              Color.FromRgb(245, 158, 11); // Thinking Orange
 
-            var iconCode = status == "completed" ? "\uE8FB" : // Checkmark
-                            status == "error" ? "\uEA39" : // Error X
-                            "\uE8B7"; // Gear
+            var (displayLabel, iconGlyph) = GetToolDisplayLabel(toolName);
+
+            // Status chip colors
+            Color statusColor;
+            string statusChipBg;
+            string statusText;
+            switch (status?.ToLower())
+            {
+                case "completed":
+                    statusColor = Color.FromRgb(16, 185, 129);   // green
+                    statusChipBg = "#052E16";
+                    statusText = "Completed";
+                    break;
+                case "error":
+                    statusColor = Color.FromRgb(239, 68, 68);    // red
+                    statusChipBg = "#450A0A";
+                    statusText = "Error";
+                    break;
+                default:
+                    statusColor = Color.FromRgb(217, 119, 6);    // amber (running)
+                    statusChipBg = "#451A03";
+                    statusText = "Running…";
+                    break;
+            }
 
             if (isNew)
             {
                 card = new Border
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(26, 26, 26)),
-                    CornerRadius = new CornerRadius(8),
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(51, 51, 51)),
+                    Background = new SolidColorBrush(Color.FromRgb(24, 24, 29)),   // #18181D
+                    CornerRadius = new CornerRadius(10),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(42, 42, 52)),  // #2A2A34
                     BorderThickness = new Thickness(1),
-                    Margin = new Thickness(0, 5, 0, 5),
-                    Padding = new Thickness(10)
+                    Margin = new Thickness(0, 4, 0, 4),
+                    Padding = new Thickness(12, 10, 12, 10)
                 };
 
-                var grid = new Grid();
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var outerStack = new StackPanel();
 
+                // Header row: icon + label + status chip
+                var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 0) };
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                // Tool icon
                 var iconBlock = new TextBlock
                 {
-                    Text = iconCode,
+                    Text = iconGlyph,
                     FontFamily = new FontFamily("Segoe MDL2 Assets"),
-                    FontSize = 16,
+                    FontSize = 14,
                     Foreground = new SolidColorBrush(statusColor),
-                    Margin = new Thickness(0, 0, 10, 0),
+                    Margin = new Thickness(0, 0, 8, 0),
                     VerticalAlignment = VerticalAlignment.Center
                 };
                 Grid.SetColumn(iconBlock, 0);
-                grid.Children.Add(iconBlock);
+                headerGrid.Children.Add(iconBlock);
 
-                var stack = new StackPanel();
-                Grid.SetColumn(stack, 1);
-
-                var headerBlock = new TextBlock
+                // Activity label
+                var labelBlock = new TextBlock
                 {
-                    Text = $"{toolName} ({status})",
-                    FontSize = 11,
-                    FontWeight = FontWeights.Bold,
+                    Text = displayLabel,
+                    FontSize = 12,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(241, 245, 249)),  // #F1F5F9
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Grid.SetColumn(labelBlock, 1);
+                headerGrid.Children.Add(labelBlock);
+
+                // Status chip
+                var chipBorder = new Border
+                {
+                    Background = (Brush)new BrushConverter().ConvertFromString(statusChipBg)!,
+                    BorderBrush = new SolidColorBrush(statusColor),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(6, 2, 6, 2),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                var chipLabel = new TextBlock
+                {
+                    Text = statusText,
+                    FontSize = 10,
+                    FontWeight = FontWeights.SemiBold,
                     Foreground = new SolidColorBrush(statusColor)
                 };
-                stack.Children.Add(headerBlock);
+                chipBorder.Child = chipLabel;
+                Grid.SetColumn(chipBorder, 2);
+                headerGrid.Children.Add(chipBorder);
 
-                var detailBlock = CreateSelectableTextBox(
-                    string.IsNullOrEmpty(input) ? "Executing tool..." : input,
-                    new SolidColorBrush(Color.FromRgb(138, 138, 138))
-                );
-                detailBlock.FontSize = 11;
-                stack.Children.Add(detailBlock);
+                outerStack.Children.Add(headerGrid);
 
-                grid.Children.Add(stack);
-                card.Child = grid;
+                // Input/output detail (monospace, selectable)
+                var detailText = !string.IsNullOrEmpty(input) ? input : "Executing…";
+                if (detailText.Length > 300) detailText = detailText[..300] + "…";
 
+                var detailBox = CreateSelectableTextBox(detailText,
+                    new SolidColorBrush(Color.FromRgb(100, 116, 139)));  // #64748B
+                detailBox.FontFamily = new FontFamily("Cascadia Mono, Consolas, Courier New");
+                detailBox.FontSize = 11;
+                detailBox.Margin = new Thickness(0, 6, 0, 0);
+                outerStack.Children.Add(detailBox);
+
+                card.Child = outerStack;
                 MockMessagesPanel.Children.Add(card);
                 _trackedToolCards[toolCallID] = card;
                 ScrollToBottom();
             }
             else
             {
-                // Update status, icon, and texts
-                var iconBlock = FindVisualChild<TextBlock>(card);
-                if (iconBlock != null)
+                // Update existing card: icon, chip, and output text
+                var allTextBlocks = FindVisualChildren<TextBlock>(card).ToList();
+                // allTextBlocks[0] = icon glyph, allTextBlocks[1] = activity label, allTextBlocks[2] = chip label
+                if (allTextBlocks.Count > 0)
                 {
-                    iconBlock.Text = iconCode;
-                    iconBlock.Foreground = new SolidColorBrush(statusColor);
+                    allTextBlocks[0].Text = iconGlyph;
+                    allTextBlocks[0].Foreground = new SolidColorBrush(statusColor);
+                }
+                if (allTextBlocks.Count > 2)
+                {
+                    allTextBlocks[2].Text = statusText;
+                    allTextBlocks[2].Foreground = new SolidColorBrush(statusColor);
                 }
 
-                var textBlocks = FindVisualChildren<TextBlock>(card).ToList();
-                if (textBlocks.Count > 1)
+                // Update chip border colors
+                var chipBorders = FindVisualChildren<Border>(card)
+                    .Where(b => b.CornerRadius.TopLeft == 4).ToList();
+                if (chipBorders.Count > 0)
                 {
-                    textBlocks[1].Text = $"{toolName} ({status})";
-                    textBlocks[1].Foreground = new SolidColorBrush(statusColor);
+                    chipBorders[0].BorderBrush = new SolidColorBrush(statusColor);
+                    chipBorders[0].Background = (Brush)new BrushConverter().ConvertFromString(statusChipBg)!;
                 }
 
+                // Update detail/output text
                 var textBox = FindVisualChild<TextBox>(card);
-                if (textBox != null && !string.IsNullOrEmpty(output))
+                if (textBox != null)
                 {
-                    textBox.Text = output;
+                    var newText = !string.IsNullOrEmpty(output) ? output : (!string.IsNullOrEmpty(input) ? input : textBox.Text);
+                    if (newText.Length > 300) newText = newText[..300] + "…";
+                    textBox.Text = newText;
                 }
             }
 
             // Save tool call details to database
-            SaveLogToDatabase($"tool:{toolName}:{status}", string.IsNullOrEmpty(output) ? input : output);
+            SaveLogToDatabase($"tool:{toolName}:{status}", string.IsNullOrEmpty(output) ? (input ?? "") : output);
         }
 
         private void SaveLogToDatabase(string kind, string content)
@@ -503,11 +739,12 @@ namespace GAS.App
                 System.Diagnostics.Debug.WriteLine($"Failed to save log entry: {ex.Message}");
             }
         }
+
         /// <summary>
         /// Creates a read-only TextBox styled to look like a TextBlock, but with
         /// full text selection support (Ctrl+C, right-click → Copy).
         /// </summary>
-        private TextBox CreateSelectableTextBox(string text, Brush foreground)
+        private static TextBox CreateSelectableTextBox(string text, Brush foreground)
         {
             var textBox = new TextBox
             {
@@ -519,16 +756,17 @@ namespace GAS.App
                 BorderThickness = new Thickness(0),
                 Background = Brushes.Transparent,
                 Padding = new Thickness(0),
-                // Remove the default focus rectangle
                 FocusVisualStyle = null,
-                // Allow cursor to appear for selection, but don't show blinking caret
                 CaretBrush = Brushes.Transparent,
-                // Ensure the selection is visible (highlighted) even when not focused
                 SelectionBrush = new SolidColorBrush(Color.FromArgb(100, 99, 102, 241)),
+                ContextMenu = new ContextMenu()
             };
 
-            // Prevent the TextBox from showing its default blue focus border
-            textBox.GotFocus += (s, e) => { };
+            // Right-click context menu: Copy + Select All
+            var copyItem = new MenuItem { Header = "Copy", Command = ApplicationCommands.Copy };
+            var selectAllItem = new MenuItem { Header = "Select All", Command = ApplicationCommands.SelectAll };
+            textBox.ContextMenu.Items.Add(copyItem);
+            textBox.ContextMenu.Items.Add(selectAllItem);
 
             return textBox;
         }

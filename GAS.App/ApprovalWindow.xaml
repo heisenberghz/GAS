@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="GAS - Permission Request"
-        Width="500"
-        Height="360"
+        Width="520"
+        Height="430"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
@@ -14,58 +14,162 @@
 
     <Grid Margin="15,0,15,15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- TitleBar space -->
-            <RowDefinition Height="*"/>      <!-- Permission request details -->
-            <RowDefinition Height="Auto"/>   <!-- Action Buttons -->
+            <RowDefinition Height="Auto"/>   <!-- TitleBar -->
+            <RowDefinition Height="*"/>      <!-- Content -->
+            <RowDefinition Height="Auto"/>   <!-- Buttons -->
         </Grid.RowDefinitions>
 
-        <!-- Custom TitleBar -->
+        <!-- TitleBar -->
         <ui:TitleBar Title="Permission Request" Grid.Row="0" Icon="ShieldAlert24" ShowMaximize="False" ShowMinimize="False" ShowHelp="False"/>
 
         <!-- Main Content -->
-        <StackPanel Grid.Row="1" Margin="10,15,10,10">
-            <!-- Header -->
-            <TextBlock FontSize="20" FontWeight="Bold" Margin="0,0,0,5">
-                <TextBlock.Foreground>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#F59E0B" Offset="0.0"/>
-                        <GradientStop Color="#EF4444" Offset="1.0"/>
-                    </LinearGradientBrush>
-                </TextBlock.Foreground>
-                Confirm Agent Action
-            </TextBlock>
+        <StackPanel Grid.Row="1" Margin="10,14,10,10">
 
-            <TextBlock Text="The AI agent requires authorization before proceeding:" FontSize="13" Foreground="#D1D5DB" Margin="0,0,0,12"/>
+            <!-- Header row: icon + title -->
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- Permission Scope/Type Info Card -->
-            <Border Background="#1A1A1A" CornerRadius="8" BorderBrush="#333333" BorderThickness="1" Padding="12" Margin="0,0,0,15">
+                <!-- Shield icon (color set in code-behind based on risk) -->
+                <Border x:Name="IconCircle"
+                        Grid.Column="0"
+                        Width="40" Height="40"
+                        CornerRadius="20"
+                        Background="#1C1C22"
+                        BorderBrush="#2A2A34"
+                        BorderThickness="1"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center">
+                    <TextBlock x:Name="RiskIconBlock"
+                               Text="&#xE72E;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="#F59E0B"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Confirm Agent Action"
+                               FontSize="17"
+                               FontWeight="SemiBold"
+                               Foreground="#F1F5F9"
+                               FontFamily="Segoe UI Variable Display"/>
+                    <TextBlock Text="The agent requires your authorization to proceed."
+                               FontSize="12"
+                               Foreground="#64748B"
+                               Margin="0,3,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Details card (5-row table) -->
+            <Border Background="#18181D"
+                    CornerRadius="10"
+                    BorderBrush="#2A2A34"
+                    BorderThickness="1"
+                    Padding="14,12"
+                    Margin="0,0,0,12">
                 <StackPanel>
-                    <Grid Margin="0,0,0,8">
+
+                    <!-- Row 1: Tool type -->
+                    <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="110"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Action Type:" FontWeight="SemiBold" Foreground="#8A8A8A" FontSize="11" Width="80" Grid.Column="0"/>
-                        <TextBlock x:Name="PermissionTypeBlock" Text="Terminal Command" FontWeight="Bold" Foreground="White" FontSize="12" Grid.Column="1"/>
+                        <TextBlock Text="Tool" Grid.Column="0" FontSize="12" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="PermissionTypeBlock" Text="–"
+                                   Grid.Column="1" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="#F1F5F9" TextWrapping="Wrap"/>
                     </Grid>
-                    
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#2A2A34" Margin="0,0,0,10"/>
+
+                    <!-- Row 2: Command/Action -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Command" Grid.Column="0" FontSize="12" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Top"/>
+                        <TextBox x:Name="PermissionDetailBlock"
+                                 Grid.Column="1"
+                                 Text="–"
+                                 FontFamily="Cascadia Mono, Consolas, Courier New"
+                                 FontSize="11.5"
+                                 Foreground="#CBD5E1"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 IsReadOnly="True"
+                                 TextWrapping="Wrap"
+                                 CaretBrush="Transparent"
+                                 SelectionBrush="#336366F1"
+                                 MaxHeight="80"
+                                 Padding="0"
+                                 FocusVisualStyle="{x:Null}"/>
+                    </Grid>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#2A2A34" Margin="0,0,0,10"/>
+
+                    <!-- Row 3: Working directory -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Directory" Grid.Column="0" FontSize="12" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11" Foreground="#475569" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="WorkingDirBlock" Text="–"
+                                       FontSize="12" Foreground="#94A3B8"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="280" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#2A2A34" Margin="0,0,0,10"/>
+
+                    <!-- Row 4: Risk level -->
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="110"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Target / Detail:" FontWeight="SemiBold" Foreground="#8A8A8A" FontSize="11" Width="80" Grid.Column="0" VerticalAlignment="Top"/>
-                        <TextBlock x:Name="PermissionDetailBlock" Text="git push origin main" Foreground="#E0E0E0" FontSize="12" TextWrapping="Wrap" MaxHeight="100" Grid.Column="1"/>
+                        <TextBlock Text="Risk Level" Grid.Column="0" FontSize="12" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center"/>
+                        <Border x:Name="RiskChipBorder"
+                                Grid.Column="1"
+                                Background="#1C1C22"
+                                BorderBrush="#F59E0B"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Padding="8,3"
+                                HorizontalAlignment="Left">
+                            <TextBlock x:Name="RiskLevelBlock"
+                                       Text="Medium"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="#F59E0B"/>
+                        </Border>
                     </Grid>
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="Always Allow will create a rule in settings to skip prompting for this pattern in the future." 
-                       FontSize="10" Foreground="#8A8A8A" TextWrapping="Wrap" LineHeight="14"/>
+            <!-- Note text -->
+            <TextBlock x:Name="RiskNoteBlock"
+                       Text="Always Allow will create a rule in settings to skip prompting for this action pattern in the future."
+                       FontSize="11"
+                       Foreground="#475569"
+                       TextWrapping="Wrap"
+                       LineHeight="16"/>
         </StackPanel>
 
         <!-- Footer Action Buttons -->
-        <Border Grid.Row="2" BorderBrush="#2D2D2D" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+        <Border Grid.Row="2" BorderBrush="#2A2A34" BorderThickness="0,1,0,0" Padding="0,12,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -74,31 +178,50 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <ui:Button x:Name="RejectButton" 
-                           Grid.Column="1" 
-                           Content="Deny" 
-                           Appearance="Secondary"
-                           Width="90" 
-                           Height="32" 
-                           Click="RejectButton_Click"/>
+                <!-- Deny -->
+                <Border Grid.Column="1"
+                        Background="#1C1C22"
+                        BorderBrush="#7F1D1D"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Margin="0,0,8,0">
+                    <ui:Button x:Name="RejectButton"
+                               Content="Deny"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               Foreground="#EF4444"
+                               Width="88"
+                               Height="34"
+                               Click="RejectButton_Click"/>
+                </Border>
 
-                <ui:Button x:Name="ApproveOnceButton" 
-                           Grid.Column="2" 
-                           Content="Allow Once" 
-                           Appearance="Primary" 
-                           Width="110" 
-                           Height="32" 
-                           Margin="8,0,0,0" 
-                           Click="ApproveOnceButton_Click"/>
+                <!-- Allow Once -->
+                <Border Grid.Column="2"
+                        CornerRadius="8"
+                        Margin="0,0,8,0">
+                    <ui:Button x:Name="ApproveOnceButton"
+                               Content="Allow Once"
+                               Appearance="Primary"
+                               Width="110"
+                               Height="34"
+                               Click="ApproveOnceButton_Click"/>
+                </Border>
 
-                <ui:Button x:Name="AlwaysAllowButton" 
-                           Grid.Column="3" 
-                           Content="Always Allow" 
-                           Appearance="Primary" 
-                           Width="110" 
-                           Height="32" 
-                           Margin="8,0,0,0" 
-                           Click="AlwaysAllowButton_Click"/>
+                <!-- Always Allow -->
+                <Border Grid.Column="3"
+                        Background="#18181D"
+                        BorderBrush="#6366F1"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                    <ui:Button x:Name="AlwaysAllowButton"
+                               Content="Always Allow"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               Foreground="#6366F1"
+                               Width="120"
+                               Height="34"
+                               Click="AlwaysAllowButton_Click"/>
+                </Border>
             </Grid>
         </Border>
     </Grid>

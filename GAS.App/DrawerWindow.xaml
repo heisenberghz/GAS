@@ -16,49 +16,82 @@
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
-        <!-- Slide-in from right Storyboard -->
+        <!-- Slide-in from right — 200ms -->
         <Storyboard x:Key="ShowStoryboard">
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="Opacity"
-                             From="0" To="1" Duration="0:0:0.25">
+                             From="0" To="1" Duration="0:0:0.2">
                 <DoubleAnimation.EasingFunction>
                     <QuadraticEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="BorderTransform"
                              Storyboard.TargetProperty="X"
-                             From="380" To="0" Duration="0:0:0.25">
+                             From="380" To="0" Duration="0:0:0.2">
                 <DoubleAnimation.EasingFunction>
                     <QuadraticEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
 
-        <!-- Slide-out to right Storyboard -->
+        <!-- Slide-out to right — 150ms -->
         <Storyboard x:Key="HideStoryboard" Completed="HideStoryboard_Completed">
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="Opacity"
-                             From="1" To="0" Duration="0:0:0.2">
+                             From="1" To="0" Duration="0:0:0.15">
                 <DoubleAnimation.EasingFunction>
                     <QuadraticEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="BorderTransform"
                              Storyboard.TargetProperty="X"
-                             From="0" To="380" Duration="0:0:0.2">
+                             From="0" To="380" Duration="0:0:0.15">
                 <DoubleAnimation.EasingFunction>
                     <QuadraticEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
+
+        <!-- Selectable TextBox style for agent text output (looks like a label, acts like a TextBox) -->
+        <Style x:Key="SelectableText" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="IsReadOnlyCaretVisible" Value="False"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text"/>
+            <Setter Property="ContextMenu">
+                <Setter.Value>
+                    <ContextMenu>
+                        <MenuItem Command="ApplicationCommands.Copy" Header="Copy"/>
+                        <MenuItem Command="ApplicationCommands.SelectAll" Header="Select All"/>
+                    </ContextMenu>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Selectable TextBox — muted variant for secondary/reasoning text -->
+        <Style x:Key="SelectableTextMuted" TargetType="TextBox" BasedOn="{StaticResource SelectableText}">
+            <Setter Property="Foreground" Value="#94A3B8"/>
+        </Style>
+
+        <!-- Selectable TextBox — monospace for command output -->
+        <Style x:Key="SelectableTextMono" TargetType="TextBox" BasedOn="{StaticResource SelectableText}">
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
-        <!-- Left margin area leaves room for drop shadow -->
+        <!-- Left margin for drop shadow -->
         <Border x:Name="MainBorder"
                 Margin="20,0,0,0"
-                Background="#1F1F1FD9"
-                BorderBrush="#3D3D3D"
+                Background="#F00F0F12"
+                BorderBrush="#2A2A34"
                 BorderThickness="1,0,0,0"
                 CornerRadius="16,0,0,16"
                 Opacity="0">
@@ -68,56 +101,59 @@
             <Border.Effect>
                 <DropShadowEffect Color="Black"
                                   Direction="180"
-                                  ShadowDepth="3"
-                                  BlurRadius="20"
-                                  Opacity="0.4"/>
+                                  ShadowDepth="2"
+                                  BlurRadius="16"
+                                  Opacity="0.3"/>
             </Border.Effect>
 
-            <Grid Margin="15,15,15,15">
+            <Grid Margin="0,0,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Name="HistoryColumn" Width="0"/>
                     <ColumnDefinition x:Name="SplitterColumn" Width="0"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>   <!-- Header -->
-                    <RowDefinition Height="*"/>      <!-- Chat Transcript -->
-                    <RowDefinition Height="Auto"/>   <!-- Bottom Input -->
+                    <RowDefinition Height="Auto"/>   <!-- Header block -->
+                    <RowDefinition Height="Auto"/>   <!-- Status strip -->
+                    <RowDefinition Height="*"/>      <!-- Chat transcript -->
+                    <RowDefinition Height="Auto"/>   <!-- Input row -->
                 </Grid.RowDefinitions>
 
-                <!-- Collapsible History Sidebar -->
-                <Grid x:Name="HistoryPanel" Grid.Column="0" Grid.RowSpan="3" Visibility="Collapsed">
+                <!-- ═══════════════════════════════════════════ -->
+                <!-- Collapsible History Sidebar                 -->
+                <!-- ═══════════════════════════════════════════ -->
+                <Grid x:Name="HistoryPanel" Grid.Column="0" Grid.RowSpan="4" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    
+
                     <ui:TextBox x:Name="HistorySearchTextBox"
                                 Grid.Row="0"
                                 PlaceholderText="Search history..."
                                 Height="32"
-                                Margin="0,0,0,10"
+                                Margin="0,0,0,8"
                                 VerticalContentAlignment="Center"
                                 TextChanged="HistorySearchTextBox_TextChanged"/>
 
-                    <ListView x:Name="MockSessionsList" 
+                    <ListView x:Name="MockSessionsList"
                               Grid.Row="1"
-                              Background="Transparent" 
-                              BorderThickness="0" 
+                              Background="Transparent"
+                              BorderThickness="0"
                               SelectionChanged="SessionsList_SelectionChanged">
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="#2D2D2D" BorderThickness="0,0,0,1" Padding="8,10" Width="210">
+                                <Border BorderBrush="#2A2A34" BorderThickness="0,0,0,1" Padding="8,10" Width="210">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
-                                            <TextBlock Text="{Binding Intent}" FontWeight="SemiBold" Foreground="White" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding DateStr}" Foreground="#8A8A8A" FontSize="10"/>
+                                            <TextBlock Text="{Binding Intent}" FontWeight="SemiBold" Foreground="#F1F5F9" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding DateStr}" Foreground="#64748B" FontSize="10" Margin="0,2,0,0"/>
                                         </StackPanel>
-                                        <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="14" Foreground="{Binding IconColor}" Grid.Column="1" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                        <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="13" Foreground="{Binding IconColor}" Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -125,29 +161,50 @@
                     </ListView>
                 </Grid>
 
-                <!-- Splitter Line -->
-                <Border x:Name="SidebarSplitter" Grid.Column="1" Grid.RowSpan="3" Width="1" Background="#2D2D2D" Margin="10,0,10,0" Visibility="Collapsed"/>
+                <!-- Splitter -->
+                <Border x:Name="SidebarSplitter" Grid.Column="1" Grid.RowSpan="4" Width="1" Background="#2A2A34" Margin="8,0" Visibility="Collapsed"/>
 
-                <!-- Header Grid -->
-                <Grid Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
+                <!-- ═══════════════════════════════════════════ -->
+                <!-- Header Block                               -->
+                <!-- ═══════════════════════════════════════════ -->
+                <Grid Grid.Row="0" Grid.Column="2" Margin="16,14,14,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="GAS Sidebar" FontSize="18" FontWeight="Bold" Foreground="White"/>
-                        <TextBlock Text="Mock Agent Session Active" FontSize="11" Foreground="#8A8A8A"/>
+                    <!-- Workspace info -->
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock x:Name="WorkspaceNameText"
+                                   Text="GAS"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   Foreground="#F1F5F9"
+                                   FontFamily="Segoe UI Variable Display"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                            <Ellipse x:Name="ConnectionDot"
+                                     Width="6" Height="6"
+                                     Fill="#10B981"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,5,0"/>
+                            <TextBlock x:Name="WorkspacePathText"
+                                       Text="Connected"
+                                       FontSize="11"
+                                       Foreground="#64748B"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="200"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
 
-                    <!-- History Toggle Button -->
+                    <!-- History Toggle -->
                     <ui:Button Grid.Column="1"
                                Content="&#xE81C;"
                                FontFamily="Segoe MDL2 Assets"
-                               FontSize="14"
+                               FontSize="13"
                                Padding="8,6"
-                               Margin="0,0,6,0"
+                               Margin="0,0,4,0"
                                Click="ToggleHistoryButton_Click"
                                Background="Transparent"
                                BorderThickness="0"
@@ -157,80 +214,142 @@
                     <ui:Button Grid.Column="2"
                                Content="&#xEA39;"
                                FontFamily="Segoe MDL2 Assets"
-                               FontSize="14"
+                               FontSize="13"
                                Padding="8,6"
                                Click="CloseButton_Click"
                                Background="Transparent"
                                BorderThickness="0"/>
                 </Grid>
 
-                <!-- Chat Transcript ScrollViewer -->
-                <ScrollViewer Grid.Row="1" Grid.Column="2" VerticalScrollBarVisibility="Auto" Margin="0,10,0,10">
-                    <StackPanel x:Name="MockMessagesPanel">
-                        <!-- User Message Bubble -->
-                        <Border Background="#6366F1" CornerRadius="12,12,0,12" HorizontalAlignment="Right" MaxWidth="280" Margin="0,5,0,5" Padding="12,10">
-                            <TextBlock Text="Review the project and fix the git warning" TextWrapping="Wrap" Foreground="White" FontSize="13"/>
+                <!-- ═══════════════════════════════════════════ -->
+                <!-- Status Strip                               -->
+                <!-- ═══════════════════════════════════════════ -->
+                <Border Grid.Row="1" Grid.Column="2"
+                        Margin="14,8,14,0"
+                        Background="#18181D"
+                        BorderBrush="#2A2A34"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10,5">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Agent state pill -->
+                        <Border Grid.Column="0"
+                                x:Name="AgentStatePill"
+                                Background="#1E293B"
+                                BorderBrush="#334155"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="6,2"
+                                Margin="0,0,8,0"
+                                VerticalAlignment="Center">
+                            <TextBlock x:Name="AgentStateLabel"
+                                       Text="● Idle"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="#64748B"/>
                         </Border>
 
-                        <!-- Agent Thoughts Bubble -->
-                        <Border Background="#2B2B2B" CornerRadius="12,12,12,0" HorizontalAlignment="Left" MaxWidth="280" Margin="0,5,0,5" Padding="12,10" BorderBrush="#3D3D3D" BorderThickness="1">
-                            <StackPanel>
-                                <TextBlock Text="Agent Thoughts:" FontSize="10" FontWeight="Bold" Foreground="#F59E0B" Margin="0,0,0,4"/>
-                                <TextBlock Text="I am analyzing BinaryManager.cs to see why it references .cmd files, and checking if there are platform-specific files we can bypass." TextWrapping="Wrap" Foreground="#D1D5DB" FontSize="13"/>
-                            </StackPanel>
-                        </Border>
+                        <!-- Divider -->
+                        <TextBlock Grid.Column="1" Text="·" FontSize="10" Foreground="#334155" VerticalAlignment="Center" Margin="0,0,8,0"/>
 
-                        <!-- Agent Action Log Box -->
-                        <Border Background="#1A1A1A" CornerRadius="8" BorderBrush="#333333" BorderThickness="1" Margin="0,5,0,5" Padding="10">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="#10B981" Margin="0,0,10,0" Grid.Column="0" VerticalAlignment="Center"/>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="File Modified" FontSize="11" FontWeight="Bold" Foreground="#10B981"/>
-                                    <TextBlock Text="GAS.Core/BinaryManager.cs (+40 lines)" FontSize="11" Foreground="#8A8A8A"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
+                        <!-- Model + workspace -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="StatusModelLabel"
+                                       Text="No model"
+                                       FontSize="10"
+                                       Foreground="#475569"
+                                       Margin="0,0,6,0"/>
+                            <TextBlock Text="·" FontSize="10" Foreground="#334155" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="StatusWorkspaceLabel"
+                                       Text="No workspace"
+                                       FontSize="10"
+                                       Foreground="#475569"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxWidth="100"/>
+                        </StackPanel>
 
-                        <!-- Agent Message Bubble -->
-                        <Border Background="#2B2B2B" CornerRadius="12,12,12,0" HorizontalAlignment="Left" MaxWidth="280" Margin="0,5,0,5" Padding="12,10" BorderBrush="#3D3D3D" BorderThickness="1">
-                            <TextBlock Text="I have updated BinaryManager.cs to resolve global npm shims directly into native .exe paths. Let's run a test build." TextWrapping="Wrap" Foreground="#D1D5DB" FontSize="13"/>
-                        </Border>
+                        <!-- Elapsed time (hidden when idle) -->
+                        <TextBlock Grid.Column="3"
+                                   x:Name="ElapsedLabel"
+                                   Text=""
+                                   FontSize="10"
+                                   Foreground="#334155"
+                                   Visibility="Collapsed"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- ═══════════════════════════════════════════ -->
+                <!-- Chat Transcript                            -->
+                <!-- ═══════════════════════════════════════════ -->
+                <ScrollViewer Grid.Row="2" Grid.Column="2"
+                              VerticalScrollBarVisibility="Auto"
+                              Margin="0,10,0,0"
+                              Padding="14,0,14,0">
+                    <StackPanel x:Name="MockMessagesPanel" Margin="0,0,0,10">
+                        <!-- Bubbles are injected dynamically from DrawerWindow.xaml.cs -->
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- Bottom Input Box -->
-                <Grid Grid.Row="2" Grid.Column="2" Margin="0,10,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <!-- ═══════════════════════════════════════════ -->
+                <!-- Bottom Input Row                           -->
+                <!-- ═══════════════════════════════════════════ -->
+                <Border Grid.Row="3" Grid.Column="2"
+                        BorderBrush="#2A2A34"
+                        BorderThickness="0,1,0,0"
+                        Padding="14,10,14,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <ui:TextBox x:Name="InputTextBox"
-                                Grid.Column="0"
-                                PlaceholderText="Reply to agent..."
-                                Height="36"
-                                VerticalContentAlignment="Center"
-                                ClearButtonEnabled="False"
-                                KeyDown="InputTextBox_KeyDown"/>
+                        <Border Grid.Column="0"
+                                Background="#18181D"
+                                BorderBrush="#2A2A34"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="2">
+                            <ui:TextBox x:Name="InputTextBox"
+                                        PlaceholderText="Reply to agent..."
+                                        Height="36"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        VerticalContentAlignment="Center"
+                                        ClearButtonEnabled="False"
+                                        FontSize="13"
+                                        Foreground="#F1F5F9"
+                                        KeyDown="InputTextBox_KeyDown"/>
+                        </Border>
 
-                    <ui:Button Grid.Column="1"
-                               Content="&#xE724;"
-                               FontFamily="Segoe MDL2 Assets"
-                               FontSize="14"
-                               Height="36"
-                               Width="36"
-                               Margin="8,0,0,0"
-                               Click="SendButton_Click"
-                               Background="#6366F1"
-                               Foreground="White"
-                               BorderThickness="0"/>
-                </Grid>
+                        <Border Grid.Column="1"
+                                Background="#6366F1"
+                                CornerRadius="10"
+                                Width="38"
+                                Height="38"
+                                Margin="8,0,0,0"
+                                Cursor="Hand">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftClick" Command="{x:Null}"/>
+                            </Border.InputBindings>
+                            <ui:Button Content="&#xE724;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="14"
+                                       Background="Transparent"
+                                       BorderThickness="0"
+                                       Foreground="White"
+                                       Click="SendButton_Click"/>
+                        </Border>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
     </Grid>
 </Window>
-
