@@ -96,6 +96,7 @@ namespace GAS.App
                 // Load Settings and Register hotkey from configuration
                 var settings = SettingsManager.Load();
                 RegisterHotkeyFromSettings(settings);
+                ApplyTheme(settings.Theme);
 
                 // 3. Initialize background server
                 _openCodeServer = new OpenCodeServer();
@@ -434,6 +435,29 @@ namespace GAS.App
             if (settings.AltModifier) parts.Add("Alt");
             parts.Add(settings.HotkeyKey);
             return string.Join("+", parts);
+        }
+
+        public static void ApplyTheme(string theme)
+        {
+            try
+            {
+                if (theme == "Light")
+                {
+                    Wpf.Ui.Appearance.ApplicationThemeManager.Apply(Wpf.Ui.Appearance.ApplicationTheme.Light);
+                }
+                else if (theme == "Dark")
+                {
+                    Wpf.Ui.Appearance.ApplicationThemeManager.Apply(Wpf.Ui.Appearance.ApplicationTheme.Dark);
+                }
+                else
+                {
+                    Wpf.Ui.Appearance.ApplicationThemeManager.ApplySystemTheme();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Theme] Failed to apply theme: {ex.Message}");
+            }
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]

@@ -14,6 +14,7 @@ namespace GAS.Core
         public string HotkeyKey { get; set; } = "Space";
         public string LastWorkspacePath { get; set; } = string.Empty;
         public string TrustMode { get; set; } = "Careful"; // Careful, Balanced, YOLO
+        public string Theme { get; set; } = "Dark"; // Dark, Light, System
     }
 
     public static class SettingsManager

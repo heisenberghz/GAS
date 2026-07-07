@@ -85,6 +85,22 @@ namespace GAS.App
                 {
                     TrustModeComboBox.SelectedIndex = 0; // Default to Careful
                 }
+
+                // Map Theme ComboBox
+                bool foundTheme = false;
+                foreach (ComboBoxItem item in ThemeComboBox.Items)
+                {
+                    if (item.Content.ToString() == settings.Theme)
+                    {
+                        ThemeComboBox.SelectedItem = item;
+                        foundTheme = true;
+                        break;
+                    }
+                }
+                if (!foundTheme && ThemeComboBox.Items.Count > 0)
+                {
+                    ThemeComboBox.SelectedIndex = 0; // Default to Dark
+                }
             }
             catch (Exception ex)
             {
@@ -138,7 +154,8 @@ namespace GAS.App
                     ShiftModifier = ShiftCheckBox.IsChecked ?? false,
                     AltModifier = AltCheckBox.IsChecked ?? false,
                     HotkeyKey = ((ComboBoxItem)KeyComboBox.SelectedItem)?.Content?.ToString() ?? "Space",
-                    TrustMode = ((ComboBoxItem)TrustModeComboBox.SelectedItem)?.Content?.ToString() ?? "Careful"
+                    TrustMode = ((ComboBoxItem)TrustModeComboBox.SelectedItem)?.Content?.ToString() ?? "Careful",
+                    Theme = ((ComboBoxItem)ThemeComboBox.SelectedItem)?.Content?.ToString() ?? "Dark"
                 };
 
                 // 2. Save encrypted API keys
@@ -155,10 +172,11 @@ namespace GAS.App
                 // 4. Update Windows startup Registry key
                 UpdateStartupRegistry(settings.StartOnBoot);
 
-                // 5. Rebind global hotkey hook in App
+                // 5. Rebind global hotkey hook and apply theme in App
                 if (Application.Current is App app)
                 {
                     app.RebindHotkey(settings);
+                    App.ApplyTheme(settings.Theme);
                 }
 
                 this.Close();

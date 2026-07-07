@@ -84,10 +84,21 @@
                     <TextBlock Text="Trust Mode" FontSize="14" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
                     <TextBlock Text="Control how GAS handles authorization requests from the AI agent:" 
                                FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                    <ComboBox x:Name="TrustModeComboBox" Width="180" HorizontalAlignment="Left" Height="32">
+                    <ComboBox x:Name="TrustModeComboBox" Width="180" HorizontalAlignment="Left" Height="32" Margin="0,0,0,15">
                         <ComboBoxItem Content="Careful"/>
                         <ComboBoxItem Content="Balanced"/>
                         <ComboBoxItem Content="YOLO"/>
+                    </ComboBox>
+
+                    <Separator Background="#2D2D2D" Height="1" Margin="0,5,0,15"/>
+
+                    <TextBlock Text="Appearance Theme" FontSize="14" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
+                    <TextBlock Text="Choose your preferred color theme for the GAS application:" 
+                               FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <ComboBox x:Name="ThemeComboBox" Width="180" HorizontalAlignment="Left" Height="32">
+                        <ComboBoxItem Content="Dark"/>
+                        <ComboBoxItem Content="Light"/>
+                        <ComboBoxItem Content="System"/>
                     </ComboBox>
                 </StackPanel>
             </TabItem>
