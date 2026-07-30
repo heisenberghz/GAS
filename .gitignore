@@ -86,3 +86,6 @@ bld/
 *.userprefs
 *.sln.docstates
 
+# Reference codebases (Motive macOS source — not part of GAS build)
+reference/
+motive-reference/
