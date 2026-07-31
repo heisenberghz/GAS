@@ -654,7 +654,7 @@ namespace GAS.App
                     );
                 });
             }
-            else if (ev.type == "permission.asked")
+            else if (ev.type == "permission.asked" || ev.type == "permission.requested")
             {
                 string? requestId = null;
                 string permissionType = "Action Authorization";
@@ -763,6 +763,82 @@ namespace GAS.App
                         });
                     });
                 }
+            }
+            else if (ev.type == "question.asked" || ev.type == "question.requested")
+            {
+                string? requestId = null;
+                string questionText = "The agent has a question for you.";
+                var options = new List<string>();
+                bool isMultiSelect = false;
+
+                if (ev.properties.TryGetProperty("id", out var idProp))
+                {
+                    requestId = idProp.GetString();
+                }
+                else if (ev.properties.TryGetProperty("requestId", out var reqIdProp))
+                {
+                    requestId = reqIdProp.GetString();
+                }
+
+                if (string.IsNullOrEmpty(requestId)) return;
+
+                if (ev.properties.TryGetProperty("text", out var textProp))
+                {
+                    questionText = textProp.GetString() ?? questionText;
+                }
+                else if (ev.properties.TryGetProperty("question", out var qProp))
+                {
+                    questionText = qProp.GetString() ?? questionText;
+                }
+
+                if (ev.properties.TryGetProperty("options", out var optionsProp) && optionsProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var opt in optionsProp.EnumerateArray())
+                    {
+                        var optStr = opt.ValueKind == JsonValueKind.String ? opt.GetString() : opt.ToString();
+                        if (!string.IsNullOrEmpty(optStr)) options.Add(optStr);
+                    }
+                }
+
+                if (ev.properties.TryGetProperty("isMultiSelect", out var multiProp))
+                {
+                    isMultiSelect = multiProp.GetBoolean();
+                }
+
+                Dispatcher.Invoke(() =>
+                {
+                    SetAppState(AppStateIcon.WaitingForApproval, "Question Received");
+
+                    _notifyIcon?.ShowBalloonTip(
+                        "Agent Question",
+                        questionText,
+                        BalloonIcon.Info
+                    );
+
+                    var qWin = new QuestionWindow(requestId, questionText, options, isMultiSelect, allowCustomInput: true);
+                    var result = qWin.ShowDialog();
+
+                    SetAppState(AppStateIcon.Executing, "Executing...");
+
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            if (qWin.WasCancelled)
+                            {
+                                await _openCodeClient!.RejectQuestionAsync(requestId);
+                            }
+                            else
+                            {
+                                await _openCodeClient!.ReplyToQuestionAsync(requestId, qWin.SelectedAnswers);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "question-reply-error.log"), ex.ToString());
+                        }
+                    });
+                });
             }
         }
 

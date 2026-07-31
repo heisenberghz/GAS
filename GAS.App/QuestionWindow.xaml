@@ -1,0 +1,120 @@
+<ui:FluentWindow x:Class="GAS.App.QuestionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        Title="GAS - Agent Question"
+        Width="520"
+        Height="420"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True"
+        Topmost="True"
+        ExtendsContentIntoTitleBar="True"
+        Background="{DynamicResource ApplicationBackgroundBrush}">
+
+    <Grid Margin="15,0,15,15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- TitleBar -->
+            <RowDefinition Height="*"/>      <!-- Question Content -->
+            <RowDefinition Height="Auto"/>   <!-- Footer Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- TitleBar -->
+        <ui:TitleBar Title="Agent Decision Required" Grid.Row="0" Icon="Help24" ShowMaximize="False" ShowMinimize="False" ShowHelp="False"/>
+
+        <!-- Main Content -->
+        <StackPanel Grid.Row="1" Margin="10,14,10,10">
+
+            <!-- Header Row -->
+            <Grid Margin="0,0,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Width="40" Height="40"
+                        CornerRadius="20"
+                        Background="#1C1C22"
+                        BorderBrush="#6366F1"
+                        BorderThickness="1"
+                        Margin="0,0,12,0"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="&#xE897;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="18"
+                               Foreground="#6366F1"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock x:Name="QuestionTitleBlock"
+                               Text="Agent Question"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="#F1F5F9"
+                               FontFamily="Segoe UI Variable Display"/>
+                    <TextBlock x:Name="QuestionSubtitleBlock"
+                               Text="Select an option or provide input to guide the agent."
+                               FontSize="12"
+                               Foreground="#64748B"
+                               Margin="0,3,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Options Panel Container -->
+            <Border Background="#18181D"
+                    CornerRadius="10"
+                    BorderBrush="#2A2A34"
+                    BorderThickness="1"
+                    Padding="14,12"
+                    Margin="0,0,0,12"
+                    MinHeight="180">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="OptionsStackPanel">
+                        <!-- Options (RadioButtons / CheckBoxes / TextBoxes) dynamically added in code-behind -->
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+
+        <!-- Footer Action Buttons -->
+        <Border Grid.Row="2" BorderBrush="#2A2A34" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Skip / Cancel -->
+                <Border Grid.Column="1"
+                        Background="#1C1C22"
+                        BorderBrush="#334155"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Margin="0,0,8,0">
+                    <ui:Button x:Name="CancelButton"
+                               Content="Skip"
+                               Background="Transparent"
+                               BorderThickness="0"
+                               Foreground="#94A3B8"
+                               Width="88"
+                               Height="34"
+                               Click="CancelButton_Click"/>
+                </Border>
+
+                <!-- Submit Response -->
+                <Border Grid.Column="2" CornerRadius="8">
+                    <ui:Button x:Name="SubmitButton"
+                               Content="Submit Answer"
+                               Appearance="Primary"
+                               Width="120"
+                               Height="34"
+                               Click="SubmitButton_Click"/>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

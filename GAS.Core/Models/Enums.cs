@@ -1,4 +1,4 @@
-﻿namespace GAS.Core.Models
+namespace GAS.Core.Models
 {
     public enum SessionStatus
     {
@@ -7,6 +7,34 @@
         Completed,
         Failed,
         Interrupted
+    }
+
+    public enum MessageStatus
+    {
+        Pending,
+        Running,
+        Completed,
+        Failed
+    }
+
+    public enum OpenCodeEventType
+    {
+        SessionUpdated,
+        SessionCompleted,
+        MessageCreated,
+        MessageUpdated,
+        MessageCompleted,
+        MessagePartCreated,
+        MessagePartUpdated,
+        MessagePartDelta,
+        MessagePartCompleted,
+        ToolStarted,
+        ToolCompleted,
+        QuestionRequested,
+        PermissionRequested,
+        AuthError,
+        SessionBind,
+        Unknown
     }
 
     public enum ScheduledTaskScheduleType
