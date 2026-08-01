@@ -357,6 +357,11 @@ namespace GAS.App
             {
                 ParseAndRenderPartDelta(ev.properties);
             }
+            else if (ev.type == "session.error" || ev.type == "auth.error" || ev.type == "engine.error")
+            {
+                var errText = ev.ExtractErrorMessage();
+                AddOrUpdateAgentMessageBubble("err_" + Guid.NewGuid().ToString(), $"⚠️ Engine Error ({ev.type}): {errText}", false);
+            }
         }
 
         private void ParseAndRenderPartUpdated(JsonElement properties)

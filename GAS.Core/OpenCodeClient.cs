@@ -8,6 +8,19 @@ using System.Threading.Tasks;
 
 namespace GAS.Core
 {
+    public class OpenCodeAPIException : Exception
+    {
+        public int StatusCode { get; }
+        public string RawBody { get; }
+
+        public OpenCodeAPIException(int statusCode, string rawBody, string message)
+            : base(message)
+        {
+            StatusCode = statusCode;
+            RawBody = rawBody;
+        }
+    }
+
     public class OpenCodeSessionInfo
     {
         public string id { get; set; } = string.Empty;
@@ -26,6 +39,30 @@ namespace GAS.Core
                 return val.GetString();
             }
             return null;
+        }
+
+        public string ExtractErrorMessage()
+        {
+            if (properties.ValueKind == JsonValueKind.Object)
+            {
+                if (properties.TryGetProperty("error", out var errObj))
+                {
+                    if (errObj.ValueKind == JsonValueKind.Object && errObj.TryGetProperty("message", out var msgVal))
+                    {
+                        return msgVal.GetString() ?? errObj.ToString();
+                    }
+                    if (errObj.ValueKind == JsonValueKind.String)
+                    {
+                        return errObj.GetString() ?? "Unknown session error";
+                    }
+                }
+                if (properties.TryGetProperty("message", out var msgProp))
+                {
+                    return msgProp.GetString() ?? properties.ToString();
+                }
+                return properties.ToString();
+            }
+            return "Session error occurred";
         }
     }
 
@@ -51,11 +88,9 @@ namespace GAS.Core
         {
             var url = $"{_serverUrl}/session";
             var payload = title != null ? (object)new { title } : new { };
-            var response = await PostJsonAsync(url, payload, directory);
-            response.EnsureSuccessStatusCode();
+            var responseJson = await PostJsonAsync(url, payload, directory);
 
-            var respJson = await response.Content.ReadAsStringAsync();
-            return JsonSerializer.Deserialize<OpenCodeSessionInfo>(respJson) 
+            return JsonSerializer.Deserialize<OpenCodeSessionInfo>(responseJson) 
                    ?? throw new InvalidOperationException("Failed to decode session info.");
         }
 
@@ -65,8 +100,7 @@ namespace GAS.Core
         public async Task AbortSessionAsync(string sessionId, string? directory = null)
         {
             var url = $"{_serverUrl}/session/{sessionId}/abort";
-            var response = await PostJsonAsync(url, new { }, directory);
-            response.EnsureSuccessStatusCode();
+            await PostJsonAsync(url, new { }, directory);
         }
 
         /// <summary>
@@ -116,8 +150,7 @@ namespace GAS.Core
                 bodyDict["model"] = modelPayload;
             }
 
-            var response = await PostJsonAsync(url, bodyDict, directory);
-            response.EnsureSuccessStatusCode();
+            await PostJsonAsync(url, bodyDict, directory);
         }
 
         /// <summary>
@@ -136,6 +169,8 @@ namespace GAS.Core
                     try
                     {
                         var url = $"{_serverUrl}/event";
+                        ExecutionLogger.LogRequest("GET", url, directory, null);
+
                         var request = new HttpRequestMessage(HttpMethod.Get, url);
                         request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/event-stream"));
                         request.Headers.CacheControl = new System.Net.Http.Headers.CacheControlHeaderValue { NoCache = true };
@@ -146,6 +181,7 @@ namespace GAS.Core
                         }
 
                         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
+                        ExecutionLogger.LogResponse(url, (int)response.StatusCode, null);
                         response.EnsureSuccessStatusCode();
 
                         using var stream = await response.Content.ReadAsStreamAsync(token);
@@ -164,12 +200,13 @@ namespace GAS.Core
                                     var ev = JsonSerializer.Deserialize<OpenCodeEvent>(jsonStr);
                                     if (ev != null)
                                     {
+                                        ExecutionLogger.LogSSE(ev.type, jsonStr);
                                         EventReceived?.Invoke(ev);
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"SSE parsing error: {ex.Message}");
+                                    ExecutionLogger.LogException($"SSE parse [{line}]", ex);
                                 }
                             }
                         }
@@ -177,6 +214,7 @@ namespace GAS.Core
                     catch (Exception ex)
                     {
                         if (token.IsCancellationRequested) break;
+                        ExecutionLogger.LogException("SSE Stream loop", ex);
                         ConnectionError?.Invoke(ex);
                         await Task.Delay(2000, token);
                     }
@@ -200,9 +238,18 @@ namespace GAS.Core
         public async Task SendPermissionReplyAsync(string requestId, string reply, string? message = null, string? directory = null)
         {
             var url = $"{_serverUrl}/permission/{requestId}/reply";
-            object payload = !string.IsNullOrEmpty(message) ? new { reply, message } : new { reply };
-            var response = await PostJsonAsync(url, payload, directory);
-            response.EnsureSuccessStatusCode();
+            var wireReply = reply.ToLowerInvariant() switch
+            {
+                "allow" => "once",
+                "once" => "once",
+                "always" => "always",
+                "deny" => "reject",
+                "reject" => "reject",
+                _ => "once"
+            };
+
+            object payload = !string.IsNullOrEmpty(message) ? new { reply = wireReply, message } : new { reply = wireReply };
+            await PostJsonAsync(url, payload, directory);
         }
 
         /// <summary>
@@ -212,8 +259,7 @@ namespace GAS.Core
         {
             var url = $"{_serverUrl}/question/{requestId}/reply";
             var payload = new { answers };
-            var response = await PostJsonAsync(url, payload, directory);
-            response.EnsureSuccessStatusCode();
+            await PostJsonAsync(url, payload, directory);
         }
 
         /// <summary>
@@ -222,13 +268,14 @@ namespace GAS.Core
         public async Task RejectQuestionAsync(string requestId, string? directory = null)
         {
             var url = $"{_serverUrl}/question/{requestId}/reject";
-            var response = await PostJsonAsync(url, new { }, directory);
-            response.EnsureSuccessStatusCode();
+            await PostJsonAsync(url, new { }, directory);
         }
 
-        private async Task<HttpResponseMessage> PostJsonAsync(string url, object payload, string? directory)
+        private async Task<string> PostJsonAsync(string url, object payload, string? directory)
         {
             var json = JsonSerializer.Serialize(payload);
+            ExecutionLogger.LogRequest("POST", url, directory, json);
+
             var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -239,7 +286,57 @@ namespace GAS.Core
                 request.Headers.Add("x-opencode-directory", directory);
             }
 
-            return await _httpClient.SendAsync(request);
+            var response = await _httpClient.SendAsync(request);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            var statusCode = (int)response.StatusCode;
+
+            ExecutionLogger.LogResponse(url, statusCode, responseBody);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string friendlyMessage = ExtractFriendlyErrorMessage(responseBody, statusCode);
+                throw new OpenCodeAPIException(statusCode, responseBody, friendlyMessage);
+            }
+
+            return responseBody;
+        }
+
+        private static string ExtractFriendlyErrorMessage(string body, int statusCode)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return $"HTTP {statusCode}: Empty response from OpenCode server";
+
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object)
+                {
+                    if (root.TryGetProperty("error", out var errObj))
+                    {
+                        if (errObj.ValueKind == JsonValueKind.Object && errObj.TryGetProperty("message", out var msgVal))
+                        {
+                            return $"HTTP {statusCode}: {msgVal.GetString()}";
+                        }
+                    }
+                    if (root.TryGetProperty("message", out var msgProp))
+                    {
+                        return $"HTTP {statusCode}: {msgProp.GetString()}";
+                    }
+                    if (root.TryGetProperty("data", out var dataObj) && dataObj.ValueKind == JsonValueKind.Object)
+                    {
+                        if (dataObj.TryGetProperty("message", out var dataMsg))
+                        {
+                            return $"HTTP {statusCode}: {dataMsg.GetString()}";
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Parse failure - return raw body
+            }
+
+            return $"HTTP {statusCode}: {body}";
         }
 
         public void Dispose()

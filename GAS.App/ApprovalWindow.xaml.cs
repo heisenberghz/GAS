@@ -81,19 +81,20 @@ namespace GAS.App
             RiskChipBorder.BorderBrush = brush;
             RiskChipBorder.Background = bgBrush;
             RiskIconBlock.Foreground = brush;
+            RiskIconBlock.Text = iconGlyph;
             RiskNoteBlock.Text = noteText;
         }
 
         private void RejectButton_Click(object sender, RoutedEventArgs e)
         {
-            UserDecision = "deny";
+            UserDecision = "reject";
             this.DialogResult = false;
             this.Close();
         }
 
         private void ApproveOnceButton_Click(object sender, RoutedEventArgs e)
         {
-            UserDecision = "allow";
+            UserDecision = "once";
             this.DialogResult = true;
             this.Close();
         }

@@ -78,9 +78,13 @@ namespace GAS.Core
                     ["glob"] = "allow",
                     ["grep"] = "allow",
                     ["list"] = "allow",
+                    ["task"] = "allow",
+                    ["question"] = "allow",
+                    ["webfetch"] = "allow",
+                    ["websearch"] = "allow",
+                    ["external_directory"] = "allow",
                     ["edit"] = "ask",
-                    ["bash"] = "ask",
-                    ["question"] = "allow"
+                    ["bash"] = "ask"
                 },
                 TrustLevel.Balanced => new Dictionary<string, object>
                 {
@@ -88,9 +92,13 @@ namespace GAS.Core
                     ["glob"] = "allow",
                     ["grep"] = "allow",
                     ["list"] = "allow",
+                    ["task"] = "allow",
+                    ["question"] = "allow",
+                    ["webfetch"] = "allow",
+                    ["websearch"] = "allow",
+                    ["external_directory"] = "allow",
                     ["edit"] = "allow",
-                    ["bash"] = "ask",
-                    ["question"] = "allow"
+                    ["bash"] = "ask"
                 },
                 TrustLevel.Yolo => new Dictionary<string, object>
                 {
@@ -98,9 +106,13 @@ namespace GAS.Core
                     ["glob"] = "allow",
                     ["grep"] = "allow",
                     ["list"] = "allow",
+                    ["task"] = "allow",
+                    ["question"] = "allow",
+                    ["webfetch"] = "allow",
+                    ["websearch"] = "allow",
+                    ["external_directory"] = "allow",
                     ["edit"] = "allow",
-                    ["bash"] = "allow",
-                    ["question"] = "allow"
+                    ["bash"] = "allow"
                 },
                 _ => new Dictionary<string, object>()
             };

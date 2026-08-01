@@ -132,23 +132,14 @@ namespace GAS.App
                 {
                     try
                     {
-                        var env = new System.Collections.Generic.Dictionary<string, string>();
-                        var openAi = _credentialStore.Read("OpenAiApiKey");
-                        var anthropic = _credentialStore.Read("AnthropicApiKey");
-                        var gemini = _credentialStore.Read("GeminiApiKey");
-                        var openRouter = _credentialStore.Read("OpenRouterApiKey");
-                        var zen = _credentialStore.Read("ZenApiKey");
-                        var ollama = _credentialStore.Read("OllamaEndpoint");
+                        var initialDir = (!string.IsNullOrEmpty(settings.LastWorkspacePath) && Directory.Exists(settings.LastWorkspacePath))
+                            ? settings.LastWorkspacePath
+                            : AppDomain.CurrentDomain.BaseDirectory;
+                        _workspacePath = initialDir;
+                        _serverWorkingDirectory = initialDir;
 
-                        if (!string.IsNullOrEmpty(openAi)) env["OPENAI_API_KEY"] = openAi;
-                        if (!string.IsNullOrEmpty(anthropic)) env["ANTHROPIC_API_KEY"] = anthropic;
-                        if (!string.IsNullOrEmpty(gemini)) env["GEMINI_API_KEY"] = gemini;
-                        if (!string.IsNullOrEmpty(openRouter)) env["OPENROUTER_API_KEY"] = openRouter;
-                        if (!string.IsNullOrEmpty(zen)) env["ZEN_API_KEY"] = zen;
-                        if (!string.IsNullOrEmpty(ollama)) env["OLLAMA_HOST"] = ollama;
-
-                        var workingDir = AppDomain.CurrentDomain.BaseDirectory;
-                        await _openCodeServer.StartAsync(resolvedPath, workingDir, env);
+                        var (_, env) = BuildOpenCodeEnvironmentAndConfig(initialDir);
+                        await _openCodeServer.StartAsync(resolvedPath, initialDir, env);
                     }
                     catch (Exception ex)
                     {
@@ -375,7 +366,7 @@ namespace GAS.App
                     else
                     {
                         // 1. Create session on OpenCode server
-                        var sessionInfo = await _openCodeClient.CreateSessionAsync(prompt);
+                        var sessionInfo = await _openCodeClient.CreateSessionAsync(prompt, _workspacePath);
                         sessionId = sessionInfo.id;
                         localSessionId = Guid.NewGuid();
                         
@@ -489,7 +480,7 @@ namespace GAS.App
                 }
                 else if (theme == "Dark")
                 {
-                    Wpf.Ui.Appearance.ApplicationThemeManager.Apply(Wpf.Ui.Appearance.ApplicationTheme.Dark);
+                    Wpf.Ui.Appearance.ApplicationThemeManager.ApplySystemTheme();
                 }
                 else
                 {
@@ -537,21 +528,7 @@ namespace GAS.App
                 throw new FileNotFoundException("OpenCode binary not found");
             }
 
-            var env = new System.Collections.Generic.Dictionary<string, string>();
-            var openAi = _credentialStore.Read("OpenAiApiKey");
-            var anthropic = _credentialStore.Read("AnthropicApiKey");
-            var gemini = _credentialStore.Read("GeminiApiKey");
-            var openRouter = _credentialStore.Read("OpenRouterApiKey");
-            var zen = _credentialStore.Read("ZenApiKey");
-            var ollama = _credentialStore.Read("OllamaEndpoint");
-
-            if (!string.IsNullOrEmpty(openAi)) env["OPENAI_API_KEY"] = openAi;
-            if (!string.IsNullOrEmpty(anthropic)) env["ANTHROPIC_API_KEY"] = anthropic;
-            if (!string.IsNullOrEmpty(gemini)) env["GEMINI_API_KEY"] = gemini;
-            if (!string.IsNullOrEmpty(openRouter)) env["OPENROUTER_API_KEY"] = openRouter;
-            if (!string.IsNullOrEmpty(zen)) env["ZEN_API_KEY"] = zen;
-            if (!string.IsNullOrEmpty(ollama)) env["OLLAMA_HOST"] = ollama;
-
+            var (configPath, env) = BuildOpenCodeEnvironmentAndConfig(directory);
             await _openCodeServer.StartAsync(binaryPath, directory, env);
 
             // Wait a moment for _openCodeClient to be initialized by OnServerUrlDetected
@@ -561,6 +538,82 @@ namespace GAS.App
                 await Task.Delay(100);
                 waitMs += 100;
             }
+        }
+
+        private (string configPath, System.Collections.Generic.Dictionary<string, string> env) BuildOpenCodeEnvironmentAndConfig(string targetDirectory)
+        {
+            var settings = SettingsManager.Load();
+            var trustLevel = Enum.TryParse<TrustLevel>(settings.TrustMode, true, out var parsedLevel) ? parsedLevel : TrustLevel.Balanced;
+            var permissionRules = ToolPermissionPolicy.ToOpenCodePermissionRules(trustLevel);
+
+            var providerName = "anthropic";
+            var envKeyName = "ANTHROPIC_API_KEY";
+            var apiKey = _credentialStore?.Read("AnthropicApiKey") ?? string.Empty;
+
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                var openAi = _credentialStore?.Read("OpenAiApiKey") ?? string.Empty;
+                if (!string.IsNullOrEmpty(openAi))
+                {
+                    providerName = "openai";
+                    envKeyName = "OPENAI_API_KEY";
+                    apiKey = openAi;
+                }
+                else
+                {
+                    var gemini = _credentialStore?.Read("GeminiApiKey") ?? string.Empty;
+                    if (!string.IsNullOrEmpty(gemini))
+                    {
+                        providerName = "google";
+                        envKeyName = "GEMINI_API_KEY";
+                        apiKey = gemini;
+                    }
+                    else
+                    {
+                        var openRouter = _credentialStore?.Read("OpenRouterApiKey") ?? string.Empty;
+                        if (!string.IsNullOrEmpty(openRouter))
+                        {
+                            providerName = "openrouter";
+                            envKeyName = "OPENROUTER_API_KEY";
+                            apiKey = openRouter;
+                        }
+                    }
+                }
+            }
+
+            var configPath = OpenCodeConfigGenerator.Generate(new OpenCodeConfigGenerator.ConfigInputs
+            {
+                ProviderName = providerName,
+                WorkspaceDirectory = targetDirectory,
+                ToolPermissions = permissionRules
+            });
+
+            var env = EnvironmentBuilder.Build(new EnvironmentBuilder.EnvironmentInputs
+            {
+                ProviderEnvKeyName = envKeyName,
+                ApiKey = apiKey,
+                ConfigPath = configPath,
+                DebugMode = false
+            });
+
+            if (_credentialStore != null)
+            {
+                var openAi = _credentialStore.Read("OpenAiApiKey");
+                var anthropic = _credentialStore.Read("AnthropicApiKey");
+                var gemini = _credentialStore.Read("GeminiApiKey");
+                var openRouter = _credentialStore.Read("OpenRouterApiKey");
+                var zen = _credentialStore.Read("ZenApiKey");
+                var ollama = _credentialStore.Read("OllamaEndpoint");
+
+                if (!string.IsNullOrEmpty(openAi)) env["OPENAI_API_KEY"] = openAi;
+                if (!string.IsNullOrEmpty(anthropic)) env["ANTHROPIC_API_KEY"] = anthropic;
+                if (!string.IsNullOrEmpty(gemini)) env["GEMINI_API_KEY"] = gemini;
+                if (!string.IsNullOrEmpty(openRouter)) env["OPENROUTER_API_KEY"] = openRouter;
+                if (!string.IsNullOrEmpty(zen)) env["ZEN_API_KEY"] = zen;
+                if (!string.IsNullOrEmpty(ollama)) env["OLLAMA_HOST"] = ollama;
+            }
+
+            return (configPath, env);
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -642,14 +695,17 @@ namespace GAS.App
                     });
                 }
             }
-            else if (ev.type == "session.error")
+            else if (ev.type == "session.error" || ev.type == "auth.error" || ev.type == "engine.error")
             {
+                var errorMsg = ev.ExtractErrorMessage();
+                ExecutionLogger.Log("SESSION_ERROR_EVENT", $"Type: {ev.type} | Msg: {errorMsg}");
+
                 Dispatcher.Invoke(() =>
                 {
                     SetAppState(AppStateIcon.Error, "Error");
                     _notifyIcon?.ShowBalloonTip(
-                        "Task Failed",
-                        "An error occurred during task execution. Click to open logs.",
+                        $"Engine Error ({ev.type})",
+                        errorMsg,
                         BalloonIcon.Error
                     );
                 });
@@ -659,6 +715,7 @@ namespace GAS.App
                 string? requestId = null;
                 string permissionType = "Action Authorization";
                 string detail = "The agent is waiting for your approval.";
+                string targetPath = string.Empty;
 
                 if (ev.properties.TryGetProperty("id", out var idProp))
                 {
@@ -684,16 +741,61 @@ namespace GAS.App
                     }
                     if (toolObjProp.TryGetProperty("arguments", out var tArgs))
                     {
-                        detail = tArgs.ValueKind == JsonValueKind.String ? tArgs.GetString() : tArgs.ToString();
+                        if (tArgs.ValueKind == JsonValueKind.Object)
+                        {
+                            if (tArgs.TryGetProperty("path", out var pathProp) ||
+                                tArgs.TryGetProperty("filePath", out pathProp) ||
+                                tArgs.TryGetProperty("file", out pathProp) ||
+                                tArgs.TryGetProperty("target", out pathProp))
+                            {
+                                targetPath = pathProp.GetString() ?? string.Empty;
+                                detail = targetPath;
+                            }
+                            else if (tArgs.TryGetProperty("command", out var cmdProp) ||
+                                     tArgs.TryGetProperty("cmd", out cmdProp))
+                            {
+                                detail = cmdProp.GetString() ?? tArgs.ToString();
+                            }
+                            else
+                            {
+                                detail = tArgs.ToString();
+                            }
+                        }
+                        else if (tArgs.ValueKind == JsonValueKind.String)
+                        {
+                            detail = tArgs.GetString() ?? detail;
+                            targetPath = detail;
+                        }
                     }
-                }
-                else if (ev.properties.TryGetProperty("detail", out var detailProp))
-                {
-                    detail = detailProp.GetString() ?? detail;
                 }
                 else if (ev.properties.TryGetProperty("pattern", out var patProp))
                 {
                     detail = patProp.GetString() ?? detail;
+                    targetPath = detail;
+                }
+                else if (ev.properties.TryGetProperty("detail", out var detailProp))
+                {
+                    detail = detailProp.GetString() ?? detail;
+                    targetPath = detail;
+                }
+
+                // Resolve effective working directory for the action display & API request
+                string effectiveWorkingDir = !string.IsNullOrEmpty(_workspacePath) ? _workspacePath : _serverWorkingDirectory;
+                if (!string.IsNullOrEmpty(targetPath))
+                {
+                    try
+                    {
+                        var trimmedPath = targetPath.Trim('"', '\'');
+                        if (Path.IsPathRooted(trimmedPath))
+                        {
+                            var parentDir = Path.GetDirectoryName(trimmedPath);
+                            if (!string.IsNullOrEmpty(parentDir))
+                            {
+                                effectiveWorkingDir = parentDir;
+                            }
+                        }
+                    }
+                    catch { }
                 }
 
                 var settings = SettingsManager.Load();
@@ -706,7 +808,7 @@ namespace GAS.App
                     {
                         try
                         {
-                            await _openCodeClient!.SendPermissionReplyAsync(requestId, "allow");
+                            await _openCodeClient!.SendPermissionReplyAsync(requestId, "allow", directory: effectiveWorkingDir);
                         }
                         catch { }
                     });
@@ -718,7 +820,7 @@ namespace GAS.App
                     {
                         try
                         {
-                            await _openCodeClient!.SendPermissionReplyAsync(requestId, "allow");
+                            await _openCodeClient!.SendPermissionReplyAsync(requestId, "allow", directory: effectiveWorkingDir);
                         }
                         catch { }
                     });
@@ -741,7 +843,7 @@ namespace GAS.App
                             requestId,
                             permissionType,
                             detail,
-                            workingDir: _serverWorkingDirectory,
+                            workingDir: effectiveWorkingDir,
                             riskLevel: GetRiskLevel(permissionType ?? string.Empty)
                         );
                         var result = approvalWin.ShowDialog();
@@ -754,7 +856,7 @@ namespace GAS.App
                         {
                             try
                             {
-                                await _openCodeClient!.SendPermissionReplyAsync(requestId, decision);
+                                await _openCodeClient!.SendPermissionReplyAsync(requestId, decision, directory: effectiveWorkingDir);
                             }
                             catch (Exception ex)
                             {
@@ -826,11 +928,11 @@ namespace GAS.App
                         {
                             if (qWin.WasCancelled)
                             {
-                                await _openCodeClient!.RejectQuestionAsync(requestId);
+                                await _openCodeClient!.RejectQuestionAsync(requestId, directory: _workspacePath);
                             }
                             else
                             {
-                                await _openCodeClient!.ReplyToQuestionAsync(requestId, qWin.SelectedAnswers);
+                                await _openCodeClient!.ReplyToQuestionAsync(requestId, qWin.SelectedAnswers, directory: _workspacePath);
                             }
                         }
                         catch (Exception ex)
@@ -968,4 +1070,3 @@ namespace GAS.App
         }
     }
 }
-
