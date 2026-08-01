@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="GAS Drawer"
-        Width="420"
+        Width="460"
         Height="800"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -16,112 +16,67 @@
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
-        <!-- Slide-in from right — 200ms -->
+        <!-- ─── Show animation (slide in from right + fade) ─── -->
         <Storyboard x:Key="ShowStoryboard">
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="Opacity"
-                             From="0" To="1" Duration="0:0:0.2">
-                <DoubleAnimation.EasingFunction>
-                    <QuadraticEase EasingMode="EaseOut"/>
-                </DoubleAnimation.EasingFunction>
+                             From="0" To="1" Duration="0:0:0.22">
+                <DoubleAnimation.EasingFunction><QuinticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="BorderTransform"
                              Storyboard.TargetProperty="X"
-                             From="380" To="0" Duration="0:0:0.2">
-                <DoubleAnimation.EasingFunction>
-                    <QuadraticEase EasingMode="EaseOut"/>
-                </DoubleAnimation.EasingFunction>
+                             From="420" To="0" Duration="0:0:0.22">
+                <DoubleAnimation.EasingFunction><QuinticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
 
-        <!-- Slide-out to right — 150ms -->
+        <!-- ─── Hide animation (slide out to right + fade) ─── -->
         <Storyboard x:Key="HideStoryboard" Completed="HideStoryboard_Completed">
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="Opacity"
                              From="1" To="0" Duration="0:0:0.15">
-                <DoubleAnimation.EasingFunction>
-                    <QuadraticEase EasingMode="EaseOut"/>
-                </DoubleAnimation.EasingFunction>
+                <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="BorderTransform"
                              Storyboard.TargetProperty="X"
-                             From="0" To="380" Duration="0:0:0.15">
-                <DoubleAnimation.EasingFunction>
-                    <QuadraticEase EasingMode="EaseOut"/>
-                </DoubleAnimation.EasingFunction>
+                             From="0" To="420" Duration="0:0:0.15">
+                <DoubleAnimation.EasingFunction><QuadraticEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
         </Storyboard>
-
-        <!-- Selectable TextBox style for agent text output (looks like a label, acts like a TextBox) -->
-        <Style x:Key="SelectableText" TargetType="TextBox">
-            <Setter Property="IsReadOnly" Value="True"/>
-            <Setter Property="IsReadOnlyCaretVisible" Value="False"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="#E2E8F0"/>
-            <Setter Property="FontFamily" Value="Segoe UI Variable Text"/>
-            <Setter Property="ContextMenu">
-                <Setter.Value>
-                    <ContextMenu>
-                        <MenuItem Command="ApplicationCommands.Copy" Header="Copy"/>
-                        <MenuItem Command="ApplicationCommands.SelectAll" Header="Select All"/>
-                    </ContextMenu>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Selectable TextBox — muted variant for secondary/reasoning text -->
-        <Style x:Key="SelectableTextMuted" TargetType="TextBox" BasedOn="{StaticResource SelectableText}">
-            <Setter Property="Foreground" Value="#94A3B8"/>
-        </Style>
-
-        <!-- Selectable TextBox — monospace for command output -->
-        <Style x:Key="SelectableTextMono" TargetType="TextBox" BasedOn="{StaticResource SelectableText}">
-            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Courier New"/>
-            <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="#CBD5E1"/>
-        </Style>
     </Window.Resources>
 
     <Grid>
-        <!-- Left margin for drop shadow -->
         <Border x:Name="MainBorder"
-                Margin="20,0,0,0"
-                Background="#F00F0F12"
-                BorderBrush="#2A2A34"
+                Margin="18,0,0,0"
+                Background="#0C0C10"
+                BorderBrush="#1F1F28"
                 BorderThickness="1,0,0,0"
-                CornerRadius="16,0,0,16"
+                CornerRadius="14,0,0,14"
                 Opacity="0">
             <Border.RenderTransform>
-                <TranslateTransform x:Name="BorderTransform" X="380"/>
+                <TranslateTransform x:Name="BorderTransform" X="420"/>
             </Border.RenderTransform>
             <Border.Effect>
-                <DropShadowEffect Color="Black"
-                                  Direction="180"
-                                  ShadowDepth="2"
-                                  BlurRadius="16"
-                                  Opacity="0.3"/>
+                <DropShadowEffect Color="Black" Direction="180" ShadowDepth="0"
+                                  BlurRadius="32" Opacity="0.45"/>
             </Border.Effect>
 
-            <Grid Margin="0,0,0,0">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Name="HistoryColumn" Width="0"/>
                     <ColumnDefinition x:Name="SplitterColumn" Width="0"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>   <!-- Header block -->
+                    <RowDefinition Height="Auto"/>   <!-- Header -->
                     <RowDefinition Height="Auto"/>   <!-- Status strip -->
-                    <RowDefinition Height="*"/>      <!-- Chat transcript -->
+                    <RowDefinition Height="*"/>      <!-- Conversation -->
                     <RowDefinition Height="Auto"/>   <!-- Input row -->
                 </Grid.RowDefinitions>
 
-                <!-- ═══════════════════════════════════════════ -->
-                <!-- Collapsible History Sidebar                 -->
-                <!-- ═══════════════════════════════════════════ -->
+                <!-- ══════════════════════════════════════════════════ -->
+                <!-- History Sidebar                                     -->
+                <!-- ══════════════════════════════════════════════════ -->
                 <Grid x:Name="HistoryPanel" Grid.Column="0" Grid.RowSpan="4" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -130,9 +85,9 @@
 
                     <ui:TextBox x:Name="HistorySearchTextBox"
                                 Grid.Row="0"
-                                PlaceholderText="Search history..."
+                                PlaceholderText="Search history…"
                                 Height="32"
-                                Margin="0,0,0,8"
+                                Margin="8,10,8,8"
                                 VerticalContentAlignment="Center"
                                 TextChanged="HistorySearchTextBox_TextChanged"/>
 
@@ -141,19 +96,48 @@
                               Background="Transparent"
                               BorderThickness="0"
                               SelectionChanged="SessionsList_SelectionChanged">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#16161E"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#1E1E2A"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListView.ItemContainerStyle>
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="#2A2A34" BorderThickness="0,0,0,1" Padding="8,10" Width="210">
+                                <Border Padding="10,9" BorderBrush="#1F1F28" BorderThickness="0,0,0,1">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0">
-                                            <TextBlock Text="{Binding Intent}" FontWeight="SemiBold" Foreground="#F1F5F9" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding DateStr}" Foreground="#64748B" FontSize="10" Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding Intent}"
+                                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#E2E8F0"
+                                                       FontSize="12"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding DateStr}"
+                                                       Foreground="#475569"
+                                                       FontSize="10"
+                                                       Margin="0,2,0,0"/>
                                         </StackPanel>
-                                        <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="13" Foreground="{Binding IconColor}" Grid.Column="1" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                        <ui:SymbolIcon Symbol="{Binding Icon}"
+                                                       FontSize="12"
+                                                       Foreground="{Binding IconColor}"
+                                                       Grid.Column="1"
+                                                       VerticalAlignment="Center"
+                                                       Margin="8,0,0,0"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -161,79 +145,102 @@
                     </ListView>
                 </Grid>
 
-                <!-- Splitter -->
-                <Border x:Name="SidebarSplitter" Grid.Column="1" Grid.RowSpan="4" Width="1" Background="#2A2A34" Margin="8,0" Visibility="Collapsed"/>
+                <Border x:Name="SidebarSplitter" Grid.Column="1" Grid.RowSpan="4"
+                        Width="1" Background="#1F1F28" Visibility="Collapsed"/>
 
-                <!-- ═══════════════════════════════════════════ -->
-                <!-- Header Block                               -->
-                <!-- ═══════════════════════════════════════════ -->
-                <Grid Grid.Row="0" Grid.Column="2" Margin="16,14,14,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Workspace info -->
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock x:Name="WorkspaceNameText"
-                                   Text="GAS"
-                                   FontSize="15"
-                                   FontWeight="SemiBold"
-                                   Foreground="#F1F5F9"
-                                   FontFamily="Segoe UI Variable Display"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                            <Ellipse x:Name="ConnectionDot"
-                                     Width="6" Height="6"
-                                     Fill="#10B981"
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,5,0"/>
-                            <TextBlock x:Name="WorkspacePathText"
-                                       Text="Connected"
-                                       FontSize="11"
-                                       Foreground="#64748B"
-                                       TextTrimming="CharacterEllipsis"
-                                       MaxWidth="200"
-                                       VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </StackPanel>
-
-                    <!-- History Toggle -->
-                    <ui:Button Grid.Column="1"
-                               Content="&#xE81C;"
-                               FontFamily="Segoe MDL2 Assets"
-                               FontSize="13"
-                               Padding="8,6"
-                               Margin="0,0,4,0"
-                               Click="ToggleHistoryButton_Click"
-                               Background="Transparent"
-                               BorderThickness="0"
-                               ToolTip="Toggle History"/>
-
-                    <!-- Close Button -->
-                    <ui:Button Grid.Column="2"
-                               Content="&#xEA39;"
-                               FontFamily="Segoe MDL2 Assets"
-                               FontSize="13"
-                               Padding="8,6"
-                               Click="CloseButton_Click"
-                               Background="Transparent"
-                               BorderThickness="0"/>
-                </Grid>
-
-                <!-- ═══════════════════════════════════════════ -->
-                <!-- Status Strip                               -->
-                <!-- ═══════════════════════════════════════════ -->
-                <Border Grid.Row="1" Grid.Column="2"
-                        Margin="14,8,14,0"
-                        Background="#18181D"
-                        BorderBrush="#2A2A34"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="10,5">
+                <!-- ══════════════════════════════════════════════════ -->
+                <!-- Header                                              -->
+                <!-- ══════════════════════════════════════════════════ -->
+                <Border Grid.Row="0" Grid.Column="2"
+                        Background="#0C0C10"
+                        BorderBrush="#1F1F28"
+                        BorderThickness="0,0,0,1"
+                        Padding="16,13,12,13">
                     <Grid>
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock x:Name="WorkspaceNameText"
+                                       Text="GAS"
+                                       FontFamily="Segoe UI Variable Display, Segoe UI"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="#F1F5F9"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <Ellipse x:Name="ConnectionDot"
+                                         Width="5" Height="5"
+                                         Fill="#10B981"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,5,0"/>
+                                <TextBlock x:Name="WorkspacePathText"
+                                           Text="Connected"
+                                           FontSize="10.5"
+                                           Foreground="#475569"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="210"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- New Conversation -->
+                        <Button x:Name="NewConversationButton"
+                                Grid.Column="1"
+                                Content="&#xE710;"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="13"
+                                Padding="8,6"
+                                Margin="0,0,2,0"
+                                Click="NewConversationButton_Click"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#64748B"
+                                ToolTip="New Conversation"
+                                Cursor="Hand"/>
+
+                        <!-- History Toggle -->
+                        <Button x:Name="HistoryToggleButton"
+                                Grid.Column="2"
+                                Content="&#xE81C;"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="13"
+                                Padding="8,6"
+                                Margin="0,0,2,0"
+                                Click="ToggleHistoryButton_Click"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#64748B"
+                                ToolTip="Toggle History"
+                                Cursor="Hand"/>
+
+                        <!-- Close -->
+                        <Button Grid.Column="3"
+                                Content="&#xEA39;"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="13"
+                                Padding="8,6"
+                                Click="CloseButton_Click"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="#64748B"
+                                Cursor="Hand"/>
+                    </Grid>
+                </Border>
+
+                <!-- ══════════════════════════════════════════════════ -->
+                <!-- Status Strip                                        -->
+                <!-- ══════════════════════════════════════════════════ -->
+                <Border Grid.Row="1" Grid.Column="2"
+                        Background="#0F0F14"
+                        BorderBrush="#1F1F28"
+                        BorderThickness="0,0,0,1"
+                        Padding="14,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -242,69 +249,146 @@
                         <!-- Agent state pill -->
                         <Border Grid.Column="0"
                                 x:Name="AgentStatePill"
-                                Background="#1E293B"
-                                BorderBrush="#334155"
+                                Background="#12121A"
+                                BorderBrush="#2A2A38"
                                 BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="6,2"
-                                Margin="0,0,8,0"
+                                CornerRadius="5"
+                                Padding="8,3"
                                 VerticalAlignment="Center">
                             <TextBlock x:Name="AgentStateLabel"
                                        Text="● Idle"
-                                       FontSize="10"
-                                       FontWeight="SemiBold"
-                                       Foreground="#64748B"/>
+                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       FontSize="10.5"
+                                       FontWeight="Medium"
+                                       Foreground="#475569"/>
                         </Border>
 
-                        <!-- Divider -->
-                        <TextBlock Grid.Column="1" Text="·" FontSize="10" Foreground="#334155" VerticalAlignment="Center" Margin="0,0,8,0"/>
-
-                        <!-- Model + workspace -->
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Model · Workspace -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                    VerticalAlignment="Center" Margin="10,0,0,0">
                             <TextBlock x:Name="StatusModelLabel"
                                        Text="No model"
                                        FontSize="10"
-                                       Foreground="#475569"
-                                       Margin="0,0,6,0"/>
-                            <TextBlock Text="·" FontSize="10" Foreground="#334155" Margin="0,0,6,0"/>
+                                       Foreground="#334155"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,5,0"/>
+                            <TextBlock Text="·" FontSize="10" Foreground="#1E293B" Margin="0,0,5,0" VerticalAlignment="Center"/>
                             <TextBlock x:Name="StatusWorkspaceLabel"
-                                       Text="No workspace"
+                                       Text=""
                                        FontSize="10"
-                                       Foreground="#475569"
+                                       Foreground="#334155"
                                        TextTrimming="CharacterEllipsis"
-                                       MaxWidth="100"/>
+                                       MaxWidth="120"
+                                       VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- Elapsed time (hidden when idle) -->
-                        <TextBlock Grid.Column="3"
+                        <!-- Elapsed time -->
+                        <TextBlock Grid.Column="2"
                                    x:Name="ElapsedLabel"
                                    Text=""
                                    FontSize="10"
-                                   Foreground="#334155"
+                                   Foreground="#1E293B"
                                    Visibility="Collapsed"
                                    VerticalAlignment="Center"/>
                     </Grid>
                 </Border>
 
-                <!-- ═══════════════════════════════════════════ -->
-                <!-- Chat Transcript                            -->
-                <!-- ═══════════════════════════════════════════ -->
-                <ScrollViewer Grid.Row="2" Grid.Column="2"
+                <!-- ══════════════════════════════════════════════════ -->
+                <!-- Conversation (continuous document view)             -->
+                <!-- ══════════════════════════════════════════════════ -->
+                <ScrollViewer x:Name="ConversationScrollViewer"
+                              Grid.Row="2" Grid.Column="2"
                               VerticalScrollBarVisibility="Auto"
-                              Margin="0,10,0,0"
-                              Padding="14,0,14,0">
-                    <StackPanel x:Name="MockMessagesPanel" Margin="0,0,0,10">
-                        <!-- Bubbles are injected dynamically from DrawerWindow.xaml.cs -->
-                    </StackPanel>
+                              HorizontalScrollBarVisibility="Disabled"
+                              PreviewMouseWheel="ConversationScrollViewer_PreviewMouseWheel"
+                              ScrollChanged="ConversationScrollViewer_ScrollChanged"
+                              Padding="0">
+
+                    <!-- Transparent overlay to allow copy/select across the whole document -->
+                    <ScrollViewer.Resources>
+                        <Style TargetType="ScrollBar">
+                            <Setter Property="Width" Value="6"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                        </Style>
+                    </ScrollViewer.Resources>
+
+                    <Grid>
+                        <!-- Main messages panel -->
+                        <StackPanel x:Name="ConversationPanel"
+                                    Margin="0,8,0,16"
+                                    CanVerticallyScroll="True">
+                            <!-- Placeholder (shown when conversation is empty) -->
+                            <Border x:Name="EmptyStatePlaceholder"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="20,60,20,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xE8BD;"
+                                               FontFamily="Segoe MDL2 Assets"
+                                               FontSize="36"
+                                               Foreground="#1E293B"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,12"/>
+                                    <TextBlock Text="Start a conversation"
+                                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               Foreground="#1E293B"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,6"/>
+                                    <TextBlock Text="Use the hotkey or command bar to ask GAS anything."
+                                               FontFamily="Segoe UI Variable Text, Segoe UI"
+                                               FontSize="12"
+                                               Foreground="#1E293B"
+                                               HorizontalAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               MaxWidth="280"
+                                               TextAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Jump to bottom FAB -->
+                        <Button x:Name="JumpToBottomButton"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Margin="0,0,16,12"
+                                Width="30" Height="30"
+                                Content="&#xE74B;"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="11"
+                                Background="#1E1E2A"
+                                Foreground="#6366F1"
+                                BorderBrush="#2A2A3A"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                ToolTip="Jump to latest"
+                                Click="JumpToBottomButton_Click">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="15"
+                                            Padding="0">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
                 </ScrollViewer>
 
-                <!-- ═══════════════════════════════════════════ -->
-                <!-- Bottom Input Row                           -->
-                <!-- ═══════════════════════════════════════════ -->
+                <!-- ══════════════════════════════════════════════════ -->
+                <!-- Input Row                                           -->
+                <!-- ══════════════════════════════════════════════════ -->
                 <Border Grid.Row="3" Grid.Column="2"
-                        BorderBrush="#2A2A34"
+                        Background="#0C0C10"
+                        BorderBrush="#1F1F28"
                         BorderThickness="0,1,0,0"
-                        Padding="14,10,14,14">
+                        Padding="12,10,12,14">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -312,40 +396,52 @@
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0"
-                                Background="#18181D"
-                                BorderBrush="#2A2A34"
+                                Background="#13131A"
+                                BorderBrush="#2A2A38"
                                 BorderThickness="1"
-                                CornerRadius="10"
-                                Padding="2">
+                                CornerRadius="10">
                             <ui:TextBox x:Name="InputTextBox"
-                                        PlaceholderText="Reply to agent..."
-                                        Height="36"
+                                        PlaceholderText="Message GAS…"
+                                        MinHeight="38"
+                                        MaxHeight="120"
                                         Background="Transparent"
                                         BorderThickness="0"
                                         VerticalContentAlignment="Center"
                                         ClearButtonEnabled="False"
-                                        FontSize="13"
-                                        Foreground="#F1F5F9"
+                                        FontFamily="Segoe UI Variable Text, Segoe UI"
+                                        FontSize="13.5"
+                                        Foreground="#E2E8F0"
+                                        Padding="12,8,12,8"
+                                        AcceptsReturn="False"
+                                        TextWrapping="Wrap"
                                         KeyDown="InputTextBox_KeyDown"/>
                         </Border>
 
+                        <!-- Send button -->
                         <Border Grid.Column="1"
-                                Background="#6366F1"
-                                CornerRadius="10"
-                                Width="38"
-                                Height="38"
                                 Margin="8,0,0,0"
+                                Width="38" Height="38"
+                                CornerRadius="10"
                                 Cursor="Hand">
-                            <Border.InputBindings>
-                                <MouseBinding MouseAction="LeftClick" Command="{x:Null}"/>
-                            </Border.InputBindings>
-                            <ui:Button Content="&#xE724;"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="14"
-                                       Background="Transparent"
-                                       BorderThickness="0"
-                                       Foreground="White"
-                                       Click="SendButton_Click"/>
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#4F46E5"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#6366F1"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Button x:Name="SendButton"
+                                    Content="&#xE724;"
+                                    FontFamily="Segoe MDL2 Assets"
+                                    FontSize="14"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Foreground="White"
+                                    Cursor="Hand"
+                                    Click="SendButton_Click"/>
                         </Border>
                     </Grid>
                 </Border>

@@ -17,6 +17,8 @@ namespace GAS.Core
         public string Theme { get; set; } = "Dark"; // Dark, Light, System
         public string SelectedProvider { get; set; } = "Auto"; // Auto, Anthropic, OpenAI, Gemini, OpenRouter, Zen, Ollama
         public string SelectedModel { get; set; } = string.Empty;
+        public bool CollapseReasoningByDefault { get; set; } = true;
+        public bool CollapseToolOutputByDefault { get; set; } = false;
     }
 
     public static class SettingsManager
