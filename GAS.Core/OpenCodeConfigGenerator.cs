@@ -77,10 +77,14 @@ namespace GAS.Core
             {
                 ["$schema"] = "https://opencode.ai/config.json",
                 ["default_agent"] = inputs.DefaultAgent,
-                ["enabled_providers"] = new[] { inputs.ProviderName },
                 ["permission"] = permissions,
                 ["agent"] = agentDict
             };
+
+            if (!string.IsNullOrWhiteSpace(inputs.ProviderName) && !inputs.ProviderName.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            {
+                config["enabled_providers"] = new[] { inputs.ProviderName };
+            }
 
             if (inputs.CompactionEnabled)
             {

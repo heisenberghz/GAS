@@ -15,6 +15,8 @@ namespace GAS.Core
         public string LastWorkspacePath { get; set; } = string.Empty;
         public string TrustMode { get; set; } = "Careful"; // Careful, Balanced, YOLO
         public string Theme { get; set; } = "Dark"; // Dark, Light, System
+        public string SelectedProvider { get; set; } = "Auto"; // Auto, Anthropic, OpenAI, Gemini, OpenRouter, Zen, Ollama
+        public string SelectedModel { get; set; } = string.Empty;
     }
 
     public static class SettingsManager

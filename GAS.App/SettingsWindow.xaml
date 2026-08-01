@@ -111,6 +111,20 @@
                         <TextBlock Text="Keys are saved locally on your machine and encrypted using Windows DPAPI, locked securely to your Windows User Account." 
                                    FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,15"/>
 
+                        <TextBlock Text="Active Provider Override" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
+                        <TextBlock Text="Default is Automatic (Use OpenCode CLI Configuration). Select a provider only to override OpenCode defaults:" 
+                                   FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <ComboBox x:Name="ProviderComboBox" Width="280" HorizontalAlignment="Left" Height="32" Margin="0,0,0,15">
+                            <ComboBoxItem Content="Auto (Use OpenCode Config)" Tag="Auto"/>
+                            <ComboBoxItem Content="Anthropic (Claude)" Tag="Anthropic"/>
+                            <ComboBoxItem Content="OpenAI (GPT-4o)" Tag="OpenAI"/>
+                            <ComboBoxItem Content="Google Gemini" Tag="Gemini"/>
+                            <ComboBoxItem Content="OpenRouter" Tag="OpenRouter"/>
+                            <ComboBoxItem Content="Ollama (Local)" Tag="Ollama"/>
+                        </ComboBox>
+
+                        <Separator Background="#2D2D2D" Height="1" Margin="0,5,0,15"/>
+
                         <TextBlock Text="OpenAI API Key" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,5,0,5"/>
                         <ui:PasswordBox x:Name="OpenAiPasswordBox" 
                                         PlaceholderText="sk-proj-... (Paste OpenAI key here)" 

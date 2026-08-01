@@ -64,23 +64,6 @@ namespace GAS.App
                 }
                 _credentialStore = new CredentialStore();
 
-                // Check if API keys are configured, otherwise trigger onboarding
-                var openAiKey = _credentialStore.Read("OpenAiApiKey");
-                var anthropicKey = _credentialStore.Read("AnthropicApiKey");
-
-                if (string.IsNullOrEmpty(openAiKey) && string.IsNullOrEmpty(anthropicKey))
-                {
-                    var onboarding = new OnboardingWindow();
-                    onboarding.ShowDialog();
-
-                    if (!onboarding.IsOnboardingSuccess)
-                    {
-                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "startup.log"), "Onboarding cancelled. Exiting.");
-                        Shutdown();
-                        return;
-                    }
-                }
-
                 // Initialize Command Bar, Drawer, and Hotkey Hook
                 _commandBar = new CommandBarWindow();
                 var helper = new System.Windows.Interop.WindowInteropHelper(_commandBar);
@@ -269,26 +252,28 @@ namespace GAS.App
             }
         }
 
+        private static bool IsValidApiKey(string? key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) return false;
+            var trimmed = key.Trim();
+            if (trimmed.Length < 10) return false;
+            return true;
+        }
+
         /// <summary>
-        /// Returns a friendly provider/model name based on which API key is configured.
+        /// Returns a friendly provider/model name based on user settings or defaults to OpenCode configuration.
         /// </summary>
         private string GetActiveProviderName()
         {
-            if (_credentialStore == null) return "No model";
+            var settings = SettingsManager.Load();
+            var selected = settings.SelectedProvider ?? "Auto";
 
-            var anthropic = _credentialStore.Read("AnthropicApiKey");
-            if (!string.IsNullOrEmpty(anthropic)) return "Claude";
+            if (selected.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Auto (OpenCode)";
+            }
 
-            var openai = _credentialStore.Read("OpenAiApiKey");
-            if (!string.IsNullOrEmpty(openai)) return "GPT-4o";
-
-            var gemini = _credentialStore.Read("GeminiApiKey");
-            if (!string.IsNullOrEmpty(gemini)) return "Gemini";
-
-            var ollama = _credentialStore.Read("OllamaBaseUrl");
-            if (!string.IsNullOrEmpty(ollama)) return "Ollama";
-
-            return "No model";
+            return selected;
         }
 
         /// <summary>
@@ -400,8 +385,23 @@ namespace GAS.App
                         }
                     });
 
-                    // 4. Send the prompt to the background engine
-                    await _openCodeClient.SendPromptAsync(sessionId, prompt, _workspacePath);
+                    // 4. Send prompt to background engine (only pass model/provider overrides if explicitly selected)
+                    string? modelOverride = null;
+                    string? providerOverride = null;
+                    var selectedProv = settings.SelectedProvider ?? "Auto";
+                    if (!selectedProv.Equals("Auto", StringComparison.OrdinalIgnoreCase))
+                    {
+                        providerOverride = selectedProv.ToLowerInvariant();
+                        modelOverride = string.IsNullOrWhiteSpace(settings.SelectedModel) ? null : settings.SelectedModel;
+                    }
+
+                    await _openCodeClient.SendPromptAsync(
+                        sessionId,
+                        prompt,
+                        _workspacePath,
+                        model: modelOverride,
+                        modelProviderID: providerOverride
+                    );
                 }
                 catch (Exception ex)
                 {
@@ -546,38 +546,48 @@ namespace GAS.App
             var trustLevel = Enum.TryParse<TrustLevel>(settings.TrustMode, true, out var parsedLevel) ? parsedLevel : TrustLevel.Balanced;
             var permissionRules = ToolPermissionPolicy.ToOpenCodePermissionRules(trustLevel);
 
-            var providerName = "anthropic";
-            var envKeyName = "ANTHROPIC_API_KEY";
-            var apiKey = _credentialStore?.Read("AnthropicApiKey") ?? string.Empty;
+            var selectedProvider = settings.SelectedProvider ?? "Auto";
+            string providerName = "auto";
+            string envKeyName = string.Empty;
+            string apiKey = string.Empty;
 
-            if (string.IsNullOrEmpty(apiKey))
+            if (!selectedProvider.Equals("Auto", StringComparison.OrdinalIgnoreCase))
             {
-                var openAi = _credentialStore?.Read("OpenAiApiKey") ?? string.Empty;
-                if (!string.IsNullOrEmpty(openAi))
+                switch (selectedProvider.ToLowerInvariant())
                 {
-                    providerName = "openai";
-                    envKeyName = "OPENAI_API_KEY";
-                    apiKey = openAi;
-                }
-                else
-                {
-                    var gemini = _credentialStore?.Read("GeminiApiKey") ?? string.Empty;
-                    if (!string.IsNullOrEmpty(gemini))
-                    {
+                    case "anthropic":
+                    case "claude":
+                        providerName = "anthropic";
+                        envKeyName = "ANTHROPIC_API_KEY";
+                        apiKey = _credentialStore?.Read("AnthropicApiKey") ?? string.Empty;
+                        break;
+                    case "openai":
+                    case "gpt-4o":
+                        providerName = "openai";
+                        envKeyName = "OPENAI_API_KEY";
+                        apiKey = _credentialStore?.Read("OpenAiApiKey") ?? string.Empty;
+                        break;
+                    case "gemini":
+                    case "google":
                         providerName = "google";
                         envKeyName = "GEMINI_API_KEY";
-                        apiKey = gemini;
-                    }
-                    else
-                    {
-                        var openRouter = _credentialStore?.Read("OpenRouterApiKey") ?? string.Empty;
-                        if (!string.IsNullOrEmpty(openRouter))
-                        {
-                            providerName = "openrouter";
-                            envKeyName = "OPENROUTER_API_KEY";
-                            apiKey = openRouter;
-                        }
-                    }
+                        apiKey = _credentialStore?.Read("GeminiApiKey") ?? string.Empty;
+                        break;
+                    case "openrouter":
+                        providerName = "openrouter";
+                        envKeyName = "OPENROUTER_API_KEY";
+                        apiKey = _credentialStore?.Read("OpenRouterApiKey") ?? string.Empty;
+                        break;
+                    case "zen":
+                        providerName = "zen";
+                        envKeyName = "ZEN_API_KEY";
+                        apiKey = _credentialStore?.Read("ZenApiKey") ?? string.Empty;
+                        break;
+                    case "ollama":
+                        providerName = "ollama";
+                        envKeyName = "OLLAMA_HOST";
+                        apiKey = _credentialStore?.Read("OllamaEndpoint") ?? string.Empty;
+                        break;
                 }
             }
 
@@ -590,27 +600,28 @@ namespace GAS.App
 
             var env = EnvironmentBuilder.Build(new EnvironmentBuilder.EnvironmentInputs
             {
-                ProviderEnvKeyName = envKeyName,
-                ApiKey = apiKey,
+                ProviderEnvKeyName = !string.IsNullOrEmpty(envKeyName) && IsValidApiKey(apiKey) ? envKeyName : string.Empty,
+                ApiKey = !string.IsNullOrEmpty(apiKey) && IsValidApiKey(apiKey) ? apiKey : string.Empty,
                 ConfigPath = configPath,
                 DebugMode = false
             });
 
+            // Only inject credentials if user has explicitly stored valid overrides
             if (_credentialStore != null)
             {
-                var openAi = _credentialStore.Read("OpenAiApiKey");
-                var anthropic = _credentialStore.Read("AnthropicApiKey");
-                var gemini = _credentialStore.Read("GeminiApiKey");
-                var openRouter = _credentialStore.Read("OpenRouterApiKey");
-                var zen = _credentialStore.Read("ZenApiKey");
-                var ollama = _credentialStore.Read("OllamaEndpoint");
+                var anthropicKey = _credentialStore.Read("AnthropicApiKey");
+                var openAiKey = _credentialStore.Read("OpenAiApiKey");
+                var geminiKey = _credentialStore.Read("GeminiApiKey");
+                var openRouterKey = _credentialStore.Read("OpenRouterApiKey");
+                var zenKey = _credentialStore.Read("ZenApiKey");
+                var ollamaHost = _credentialStore.Read("OllamaEndpoint");
 
-                if (!string.IsNullOrEmpty(openAi)) env["OPENAI_API_KEY"] = openAi;
-                if (!string.IsNullOrEmpty(anthropic)) env["ANTHROPIC_API_KEY"] = anthropic;
-                if (!string.IsNullOrEmpty(gemini)) env["GEMINI_API_KEY"] = gemini;
-                if (!string.IsNullOrEmpty(openRouter)) env["OPENROUTER_API_KEY"] = openRouter;
-                if (!string.IsNullOrEmpty(zen)) env["ZEN_API_KEY"] = zen;
-                if (!string.IsNullOrEmpty(ollama)) env["OLLAMA_HOST"] = ollama;
+                if (IsValidApiKey(anthropicKey)) env["ANTHROPIC_API_KEY"] = anthropicKey!;
+                if (IsValidApiKey(openAiKey)) env["OPENAI_API_KEY"] = openAiKey!;
+                if (IsValidApiKey(geminiKey)) env["GEMINI_API_KEY"] = geminiKey!;
+                if (IsValidApiKey(openRouterKey)) env["OPENROUTER_API_KEY"] = openRouterKey!;
+                if (IsValidApiKey(zenKey)) env["ZEN_API_KEY"] = zenKey!;
+                if (!string.IsNullOrWhiteSpace(ollamaHost)) env["OLLAMA_HOST"] = ollamaHost;
             }
 
             return (configPath, env);

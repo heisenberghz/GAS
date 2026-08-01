@@ -101,6 +101,23 @@ namespace GAS.App
                 {
                     ThemeComboBox.SelectedIndex = 0; // Default to Dark
                 }
+
+                // Map Provider ComboBox
+                bool foundProvider = false;
+                foreach (ComboBoxItem item in ProviderComboBox.Items)
+                {
+                    var tag = item.Tag?.ToString() ?? item.Content?.ToString();
+                    if (tag == settings.SelectedProvider || item.Content?.ToString() == settings.SelectedProvider)
+                    {
+                        ProviderComboBox.SelectedItem = item;
+                        foundProvider = true;
+                        break;
+                    }
+                }
+                if (!foundProvider && ProviderComboBox.Items.Count > 0)
+                {
+                    ProviderComboBox.SelectedIndex = 0; // Default to Auto
+                }
             }
             catch (Exception ex)
             {
@@ -155,7 +172,8 @@ namespace GAS.App
                     AltModifier = AltCheckBox.IsChecked ?? false,
                     HotkeyKey = ((ComboBoxItem)KeyComboBox.SelectedItem)?.Content?.ToString() ?? "Space",
                     TrustMode = ((ComboBoxItem)TrustModeComboBox.SelectedItem)?.Content?.ToString() ?? "Careful",
-                    Theme = ((ComboBoxItem)ThemeComboBox.SelectedItem)?.Content?.ToString() ?? "Dark"
+                    Theme = ((ComboBoxItem)ThemeComboBox.SelectedItem)?.Content?.ToString() ?? "Dark",
+                    SelectedProvider = ((ComboBoxItem)ProviderComboBox.SelectedItem)?.Tag?.ToString() ?? "Auto"
                 };
 
                 // 2. Save encrypted API keys
