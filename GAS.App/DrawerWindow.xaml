@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="GAS Drawer"
         Width="460"
         Height="800"
@@ -294,92 +295,11 @@
                 </Border>
 
                 <!-- ══════════════════════════════════════════════════ -->
-                <!-- Conversation (continuous document view)             -->
+                <!-- Conversation (WebView2 — full UX)                  -->
                 <!-- ══════════════════════════════════════════════════ -->
-                <ScrollViewer x:Name="ConversationScrollViewer"
+                <wv2:WebView2 x:Name="ConversationView"
                               Grid.Row="2" Grid.Column="2"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              PreviewMouseWheel="ConversationScrollViewer_PreviewMouseWheel"
-                              ScrollChanged="ConversationScrollViewer_ScrollChanged"
-                              Padding="0">
-
-                    <!-- Transparent overlay to allow copy/select across the whole document -->
-                    <ScrollViewer.Resources>
-                        <Style TargetType="ScrollBar">
-                            <Setter Property="Width" Value="6"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                        </Style>
-                    </ScrollViewer.Resources>
-
-                    <Grid>
-                        <!-- Main messages panel -->
-                        <StackPanel x:Name="ConversationPanel"
-                                    Margin="0,8,0,16"
-                                    CanVerticallyScroll="True">
-                            <!-- Placeholder (shown when conversation is empty) -->
-                            <Border x:Name="EmptyStatePlaceholder"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center"
-                                    Margin="20,60,20,0">
-                                <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="&#xE8BD;"
-                                               FontFamily="Segoe MDL2 Assets"
-                                               FontSize="36"
-                                               Foreground="#1E293B"
-                                               HorizontalAlignment="Center"
-                                               Margin="0,0,0,12"/>
-                                    <TextBlock Text="Start a conversation"
-                                               FontFamily="Segoe UI Variable Display, Segoe UI"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
-                                               Foreground="#1E293B"
-                                               HorizontalAlignment="Center"
-                                               Margin="0,0,0,6"/>
-                                    <TextBlock Text="Use the hotkey or command bar to ask GAS anything."
-                                               FontFamily="Segoe UI Variable Text, Segoe UI"
-                                               FontSize="12"
-                                               Foreground="#1E293B"
-                                               HorizontalAlignment="Center"
-                                               TextWrapping="Wrap"
-                                               MaxWidth="280"
-                                               TextAlignment="Center"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Jump to bottom FAB -->
-                        <Button x:Name="JumpToBottomButton"
-                                Visibility="Collapsed"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Bottom"
-                                Margin="0,0,16,12"
-                                Width="30" Height="30"
-                                Content="&#xE74B;"
-                                FontFamily="Segoe MDL2 Assets"
-                                FontSize="11"
-                                Background="#1E1E2A"
-                                Foreground="#6366F1"
-                                BorderBrush="#2A2A3A"
-                                BorderThickness="1"
-                                Cursor="Hand"
-                                ToolTip="Jump to latest"
-                                Click="JumpToBottomButton_Click">
-                            <Button.Template>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="15"
-                                            Padding="0">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                          VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Button.Template>
-                        </Button>
-                    </Grid>
-                </ScrollViewer>
+                              NavigationCompleted="ConversationView_NavigationCompleted"/>
 
                 <!-- ══════════════════════════════════════════════════ -->
                 <!-- Input Row                                           -->
