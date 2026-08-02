@@ -242,11 +242,18 @@ namespace GAS.App
                 _lastForegroundHwnd = GetForegroundWindow();
                 System.Diagnostics.Debug.WriteLine($"[Hotkey] Captured foreground HWND: {_lastForegroundHwnd}");
 
-                // Update context (workspace + provider) before showing the command bar
-                var workspacePath = string.IsNullOrEmpty(_workspacePath)
-                    ? _serverWorkingDirectory
-                    : _workspacePath;
-                _commandBar.UpdateContext(workspacePath, GetActiveProviderName());
+                // Detect workspace from the foreground window immediately
+                var settings = SettingsManager.Load();
+                var wsInfo = WorkspaceDetector.Detect(settings.LastWorkspacePath, _lastForegroundHwnd);
+                _workspacePath = wsInfo.Path;
+                System.Diagnostics.Debug.WriteLine($"[Hotkey] Detected workspace: '{wsInfo.Path}' via {wsInfo.Method} → '{wsInfo.ProjectName}'");
+
+                // Update command bar context
+                _commandBar.UpdateContext(_workspacePath, GetActiveProviderName());
+
+                // Update drawer header with detected workspace
+                _drawer?.UpdateConnectionStatus(true, _workspacePath);
+                _drawer?.UpdateStatusStrip(null, null, _workspacePath, null);
 
                 _commandBar.ShowCommandBar();
             }
@@ -314,7 +321,14 @@ namespace GAS.App
                     var workspaceInfo = WorkspaceDetector.Detect(settings.LastWorkspacePath, hwnd);
                     _workspacePath = workspaceInfo.Path;
                     
-                    System.Diagnostics.Debug.WriteLine($"[AgentRun] Using workspace '{_workspacePath}' detected via {workspaceInfo.Method}");
+                    System.Diagnostics.Debug.WriteLine($"[AgentRun] Using workspace '{_workspacePath}' detected via {workspaceInfo.Method} → project '{workspaceInfo.ProjectName}'");
+
+                    // Push workspace info to drawer immediately
+                    Dispatcher.Invoke(() =>
+                    {
+                        _drawer?.UpdateConnectionStatus(true, _workspacePath);
+                        _drawer?.UpdateStatusStrip("Thinking", null, _workspacePath, null);
+                    });
 
                     // Ensure the OpenCode server is running in the correct workspace directory
                     await EnsureServerRunningInDirectoryAsync(_workspacePath);
@@ -630,7 +644,12 @@ namespace GAS.App
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         private void OnServerUrlDetected(string url)
         {
-            Dispatcher.Invoke(() => SetAppState(AppStateIcon.Executing, "Server Connected"));
+            Dispatcher.Invoke(() =>
+            {
+                SetAppState(AppStateIcon.Executing, "Server Connected");
+                // Push workspace info to drawer on initial connection
+                _drawer?.UpdateConnectionStatus(true, _workspacePath);
+            });
 
             // Initialize OpenCodeClient and start streaming events
             _openCodeClient = new OpenCodeClient(url);

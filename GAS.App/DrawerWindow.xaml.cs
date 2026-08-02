@@ -327,36 +327,42 @@ namespace GAS.App
         // ─────────────────────────────────────────────────────────────
         //  Status strip
         // ─────────────────────────────────────────────────────────────
-        public void UpdateStatusStrip(string state, string model, string workspace, TimeSpan? elapsed)
+        public void UpdateStatusStrip(string? state, string? model, string? workspace, TimeSpan? elapsed)
         {
             Dispatcher.Invoke(() =>
             {
                 if (!string.IsNullOrEmpty(model))     _currentModel     = model;
                 if (!string.IsNullOrEmpty(workspace)) _currentWorkspace = workspace;
 
-                var (text, fg, borderHex, running) = state.ToLower() switch
+                // Only update state pill if state is provided
+                if (!string.IsNullOrEmpty(state))
                 {
-                    "thinking"  => ("⊙ Thinking",  "#D97706", "#92400E", true),
-                    "executing" => ("⚙ Executing", "#6366F1", "#3730A3", true),
-                    "waiting"   => ("⏳ Waiting",   "#F59E0B", "#92400E", true),
-                    "error"     => ("✕ Error",      "#EF4444", "#7F1D1D", false),
-                    _           => ("● Idle",       "#334155", "#1E293B", false),
-                };
+                    var (text, fg, borderHex, running) = state.ToLower() switch
+                    {
+                        "thinking"  => ("⊙ Thinking",  "#D97706", "#92400E", true),
+                        "executing" => ("⚙ Executing", "#6366F1", "#3730A3", true),
+                        "waiting"   => ("⏳ Waiting",   "#F59E0B", "#92400E", true),
+                        "error"     => ("✕ Error",      "#EF4444", "#7F1D1D", false),
+                        _           => ("● Idle",       "#334155", "#1E293B", false),
+                    };
 
-                AgentStateLabel.Text        = text;
-                AgentStateLabel.Foreground  = Brush(fg);
-                AgentStatePill.BorderBrush  = Brush(borderHex);
-                StatusModelLabel.Text       = _currentModel;
-                var wShort = System.IO.Path.GetFileName(_currentWorkspace.TrimEnd('\\', '/'));
-                StatusWorkspaceLabel.Text   = string.IsNullOrEmpty(wShort) ? _currentWorkspace : wShort;
-                WorkspaceNameText.Text      = string.IsNullOrEmpty(wShort) ? "GAS" : wShort;
-                WorkspacePathText.Text      = _currentWorkspace;
+                    AgentStateLabel.Text        = text;
+                    AgentStateLabel.Foreground  = Brush(fg);
+                    AgentStatePill.BorderBrush  = Brush(borderHex);
 
-                if (!running)
-                {
-                    _elapsedTimer?.Stop();
-                    ElapsedLabel.Visibility = Visibility.Collapsed;
+                    if (!running)
+                    {
+                        _elapsedTimer?.Stop();
+                        ElapsedLabel.Visibility = Visibility.Collapsed;
+                    }
                 }
+
+                // Always update model/workspace labels
+                StatusModelLabel.Text     = _currentModel;
+                var projectName = WorkspaceDetector.DeriveProjectName(_currentWorkspace);
+                WorkspaceNameText.Text    = string.IsNullOrEmpty(projectName) ? "GAS" : projectName;
+                StatusWorkspaceLabel.Text = string.IsNullOrEmpty(projectName) ? _currentWorkspace : projectName;
+                WorkspacePathText.Text    = _currentWorkspace;
 
                 if (elapsed.HasValue)
                 {
@@ -372,8 +378,19 @@ namespace GAS.App
         {
             Dispatcher.Invoke(() =>
             {
-                ConnectionDot.Fill   = connected ? Brush("#10B981") : Brush("#F59E0B");
-                WorkspacePathText.Text = connected ? workspacePath : "Reconnecting…";
+                ConnectionDot.Fill = connected ? Brush("#10B981") : Brush("#F59E0B");
+                if (connected && !string.IsNullOrEmpty(workspacePath))
+                {
+                    _currentWorkspace = workspacePath;
+                    var projectName = WorkspaceDetector.DeriveProjectName(workspacePath);
+                    WorkspaceNameText.Text = string.IsNullOrEmpty(projectName) ? "GAS" : projectName;
+                    WorkspacePathText.Text = workspacePath;
+                    StatusWorkspaceLabel.Text = string.IsNullOrEmpty(projectName) ? workspacePath : projectName;
+                }
+                else
+                {
+                    WorkspacePathText.Text = "Reconnecting…";
+                }
             });
         }
 
