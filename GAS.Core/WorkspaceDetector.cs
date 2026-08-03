@@ -10,9 +10,10 @@ namespace GAS.Core
 {
     /// <summary>
     /// Detects the current workspace directory using a priority chain:
-    /// 1. The foreground window's folder (File Explorer, VS Code, Visual Studio, terminals)
-    /// 2. Saved LastWorkspacePath from settings (if directory still exists)
-    /// 3. User home directory as final fallback
+    /// 1. Foreground window (VS Code, Antigravity IDE, Cursor, Windsurf, Visual Studio, Explorer, Terminals)
+    /// 2. Active running IDE processes scan
+    /// 3. Saved LastWorkspacePath from settings
+    /// 4. Home directory fallback
     /// </summary>
     public class WorkspaceInfo
     {
@@ -26,21 +27,35 @@ namespace GAS.Core
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
-
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern int GetWindowTextLength(IntPtr hWnd);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
 
+        private static readonly string[] VsCodeProcessNames = new[]
+        {
+            "Code", "Code - Insiders", "Antigravity IDE", "Antigravity",
+            "Cursor", "Windsurf", "codium", "VSCodium", "electron"
+        };
+
+        private static readonly string[] VsCodeTitleSuffixes = new[]
+        {
+            " - Antigravity IDE",
+            " - Visual Studio Code",
+            " - Visual Studio Code - Insiders",
+            " - Cursor",
+            " - Windsurf",
+            " - VSCodium",
+            " - Code"
+        };
+
         /// <summary>
         /// Returns the best workspace path available.
         /// </summary>
         public static WorkspaceInfo Detect(string? savedPath, IntPtr foregroundHwnd = default)
         {
-            Debug.WriteLine($"[WD] Detect: hwnd={foregroundHwnd}, saved={savedPath}");
+            Debug.WriteLine($"[WD] Detect: hwnd={foregroundHwnd}, savedPath={savedPath}");
 
             if (foregroundHwnd != IntPtr.Zero)
             {
@@ -53,9 +68,10 @@ namespace GAS.Core
                 }
                 catch { }
 
-                Debug.WriteLine($"[WD] Foreground: PID={fgPid}, Name={processName}");
+                var windowTitle = GetTitle(foregroundHwnd);
+                Debug.WriteLine($"[WD] Foreground: PID={fgPid}, Name='{processName}', Title='{windowTitle}'");
 
-                // ─── File Explorer ─────────────────────────────────
+                // ─── 1. File Explorer ──────────────────────────────
                 if (processName.Equals("explorer", StringComparison.OrdinalIgnoreCase))
                 {
 #pragma warning disable CA1416
@@ -65,26 +81,26 @@ namespace GAS.Core
                         return MakeResult(explorerPath, "File Explorer");
                 }
 
-                // ─── VS Code ──────────────────────────────────────
-                if (processName.Equals("Code", StringComparison.OrdinalIgnoreCase))
+                // ─── 2. VS Code Family (VS Code, Antigravity IDE, Cursor, Windsurf, etc.) ─
+                if (IsVsCodeFamily(processName, windowTitle))
                 {
-                    // Strategy 1: Parse window title (most reliable)
-                    var titlePath = TryGetVsCodePathFromTitle(foregroundHwnd);
+                    // Strategy A: Parse window title (most reliable for foreground editor)
+                    var titlePath = TryGetVsCodePathFromTitle(windowTitle, savedPath);
                     if (titlePath != null)
-                        return MakeResult(titlePath, "VS Code (title)");
+                        return MakeResult(titlePath, $"{processName} (title)");
 
-                    // Strategy 2: Walk the process tree to find the matching instance
-                    var treePath = TryGetVsCodeFolderByProcessTree(fgPid);
-                    if (treePath != null)
-                        return MakeResult(treePath, "VS Code (tree)");
+                    // Strategy B: WMI process command line `--folder-uri` search
+                    var cmdPath = TryGetVsCodeFolderByPidOrTree(fgPid, processName);
+                    if (cmdPath != null)
+                        return MakeResult(cmdPath, $"{processName} (commandline)");
 
-                    // Strategy 3: CWD of the process
+                    // Strategy C: CWD of process / child processes
                     var cwdPath = TryGetWorkingDirectory((int)fgPid);
                     if (cwdPath != null)
-                        return MakeResult(cwdPath, "VS Code (cwd)");
+                        return MakeResult(cwdPath, $"{processName} (cwd)");
                 }
 
-                // ─── Visual Studio ────────────────────────────────
+                // ─── 3. Visual Studio ──────────────────────────────
                 if (processName.Equals("devenv", StringComparison.OrdinalIgnoreCase))
                 {
                     var vsPath = TryGetVisualStudioFolder(fgPid);
@@ -92,7 +108,7 @@ namespace GAS.Core
                         return MakeResult(vsPath, "Visual Studio");
                 }
 
-                // ─── Terminal (Windows Terminal, ConHost, PowerShell, cmd) ─
+                // ─── 4. Terminal (Windows Terminal, pwsh, cmd) ─────
                 if (processName.Equals("WindowsTerminal", StringComparison.OrdinalIgnoreCase) ||
                     processName.Equals("pwsh", StringComparison.OrdinalIgnoreCase) ||
                     processName.Equals("powershell", StringComparison.OrdinalIgnoreCase) ||
@@ -103,44 +119,79 @@ namespace GAS.Core
                         return MakeResult(termPath, "Terminal");
                 }
 
-                Debug.WriteLine($"[WD] Foreground '{processName}' not recognized or detection failed");
+                Debug.WriteLine($"[WD] Foreground window '{processName}' did not match specific rules; trying title parsing");
+                // Generic title match if foreground title contains an IDE suffix
+                var genericTitlePath = TryGetVsCodePathFromTitle(windowTitle, savedPath);
+                if (genericTitlePath != null)
+                    return MakeResult(genericTitlePath, "Generic IDE (title)");
             }
 
-            // ─── Fallback: scan for any running IDE ──────────────
-            Debug.WriteLine("[WD] Scanning all processes for IDE workspaces");
+            // ─── Fallback A: Scan all running VS Code family processes ───
+            Debug.WriteLine("[WD] Scanning all running IDE processes for active workspaces");
+            var scannedVsCode = TryScanAllVsCodeProcesses(savedPath);
+            if (scannedVsCode != null)
+                return MakeResult(scannedVsCode, "IDE Process Scan");
 
-            var anyVsCode = TryGetMostRecentVsCodeWorkspace();
-            if (anyVsCode != null)
-                return MakeResult(anyVsCode, "VS Code (scan)");
+            var scannedVs = TryGetVisualStudioFolder(0);
+            if (scannedVs != null)
+                return MakeResult(scannedVs, "Visual Studio Scan");
 
-            var anyVs = TryGetVisualStudioFolder(0);
-            if (anyVs != null)
-                return MakeResult(anyVs, "Visual Studio (scan)");
-
-            // ─── Saved path ──────────────────────────────────────
+            // ─── Fallback B: Saved workspace from settings ───────────────
             if (!string.IsNullOrWhiteSpace(savedPath) && Directory.Exists(savedPath))
+            {
+                Debug.WriteLine($"[WD] Using saved workspace: '{savedPath}'");
                 return MakeResult(savedPath, "Saved Settings");
+            }
 
-            // ─── Home directory ──────────────────────────────────
+            // ─── Fallback C: Home Directory ─────────────────────────────
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            Debug.WriteLine($"[WD] Fallback to Home: '{home}'");
             return new WorkspaceInfo { Path = home, Method = "Home Directory", ProjectName = "Home" };
         }
 
         // ────────────────────────────────────────────────────────────────
-        //  Result builder
+        //  Helper: Check if process or window title belongs to VS Code family
+        // ────────────────────────────────────────────────────────────────
+
+        private static bool IsVsCodeFamily(string processName, string windowTitle)
+        {
+            if (VsCodeProcessNames.Any(n => processName.Equals(n, StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            if (VsCodeTitleSuffixes.Any(s => windowTitle.EndsWith(s, StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            if (windowTitle.Contains("Antigravity") || windowTitle.Contains("Visual Studio Code") ||
+                windowTitle.Contains("Cursor") || windowTitle.Contains("Windsurf"))
+                return true;
+
+            return false;
+        }
+
+        private static string GetTitle(IntPtr hwnd)
+        {
+            try
+            {
+                int len = GetWindowTextLength(hwnd);
+                if (len <= 0) return string.Empty;
+                var sb = new System.Text.StringBuilder(len + 1);
+                GetWindowText(hwnd, sb, len + 1);
+                return sb.ToString();
+            }
+            catch { return string.Empty; }
+        }
+
+        // ────────────────────────────────────────────────────────────────
+        //  Result Builder & Project Name Derivation
         // ────────────────────────────────────────────────────────────────
 
         private static WorkspaceInfo MakeResult(string path, string method)
         {
             var name = DeriveProjectName(path);
-            Debug.WriteLine($"[WD] ✓ {method}: {path} → '{name}'");
+            Debug.WriteLine($"[WD] ✓ {method}: '{path}' → ProjectName: '{name}'");
             return new WorkspaceInfo { Path = path, Method = method, ProjectName = name };
         }
 
-        /// <summary>
-        /// Derives a friendly project name from the workspace path.
-        /// Looks for .sln, package.json, .git, then falls back to directory name.
-        /// </summary>
         public static string DeriveProjectName(string path)
         {
             if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
@@ -148,17 +199,14 @@ namespace GAS.Core
 
             try
             {
-                // .sln file → use its name
                 var sln = Directory.GetFiles(path, "*.sln").FirstOrDefault();
                 if (sln != null)
                     return System.IO.Path.GetFileNameWithoutExtension(sln);
 
-                // .csproj file → use its name
                 var csproj = Directory.GetFiles(path, "*.csproj").FirstOrDefault();
                 if (csproj != null)
                     return System.IO.Path.GetFileNameWithoutExtension(csproj);
 
-                // package.json → read "name"
                 var pkgJson = System.IO.Path.Combine(path, "package.json");
                 if (File.Exists(pkgJson))
                 {
@@ -170,170 +218,268 @@ namespace GAS.Core
                     }
                     catch { }
                 }
-
-                // Cargo.toml, go.mod etc → directory name is fine
             }
             catch { }
 
-            // Fallback: directory name
-            return new DirectoryInfo(path).Name;
+            return new DirectoryInfo(path.TrimEnd('\\', '/')).Name;
         }
 
         // ────────────────────────────────────────────────────────────────
-        //  VS Code: Primary — parse window title
+        //  VS Code Title Parsing Logic
         // ────────────────────────────────────────────────────────────────
-        //  VS Code titles look like:
-        //    "App.xaml.cs - GAS - Visual Studio Code"
-        //    "folder-name - Visual Studio Code"
-        //    "Welcome - GAS - Visual Studio Code"
-        // The second-to-last segment before " - Visual Studio Code" is the folder name.
+        //  Title formats across VS Code variants:
+        //    "GAS - Antigravity IDE - ConversationHtml.cs"
+        //    "ConversationHtml.cs - GAS - Visual Studio Code"
+        //    "GAS - Cursor"
+        //    "WorkspaceName - AppName"
 
-        private static string? TryGetVsCodePathFromTitle(IntPtr hwnd)
+        private static string? TryGetVsCodePathFromTitle(string title, string? savedPath)
         {
-            try
+            if (string.IsNullOrWhiteSpace(title)) return null;
+
+            Debug.WriteLine($"[WD] Parsing title: '{title}'");
+
+            // Remove known IDE suffixes
+            string cleanTitle = title;
+            foreach (var suffix in VsCodeTitleSuffixes)
             {
-                int len = GetWindowTextLength(hwnd);
-                if (len <= 0) return null;
-
-                var sb = new System.Text.StringBuilder(len + 1);
-                GetWindowText(hwnd, sb, len + 1);
-                var title = sb.ToString();
-
-                Debug.WriteLine($"[WD] VS Code title: '{title}'");
-
-                // Pattern: "something - WORKSPACE - Visual Studio Code"
-                // or      "WORKSPACE - Visual Studio Code"
-                const string suffix = " - Visual Studio Code";
-                if (!title.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
-                    return null;
-
-                var withoutSuffix = title[..^suffix.Length];
-                // Now split by " - " and take the last segment as workspace name
-                var parts = withoutSuffix.Split(new[] { " - " }, StringSplitOptions.RemoveEmptyEntries);
-                var wsName = parts.Length > 0 ? parts[^1].Trim() : null;
-                if (string.IsNullOrEmpty(wsName)) return null;
-
-                Debug.WriteLine($"[WD] VS Code workspace name from title: '{wsName}'");
-
-                // Now find that folder: check all Code processes for --folder-uri containing this name
-                foreach (var p in Process.GetProcessesByName("Code"))
+                if (cleanTitle.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    try
-                    {
-                        var cmdLine = GetCommandLine(p.Id);
-                        if (cmdLine == null) continue;
-
-                        var match = Regex.Match(cmdLine, @"--folder-uri=file:///([^""\s]+)", RegexOptions.IgnoreCase);
-                        if (!match.Success) continue;
-
-                        var rawPath = match.Groups[1].Value;
-                        var decoded = Uri.UnescapeDataString(rawPath).Replace('/', '\\');
-                        if (!Directory.Exists(decoded)) continue;
-
-                        var dirName = new DirectoryInfo(decoded).Name;
-                        if (dirName.Equals(wsName, StringComparison.OrdinalIgnoreCase))
-                        {
-                            Debug.WriteLine($"[WD] VS Code title→path match: '{decoded}'");
-                            return decoded;
-                        }
-                    }
-                    catch { }
-                    finally { p.Dispose(); }
+                    cleanTitle = cleanTitle[..^suffix.Length];
+                    break;
                 }
+            }
 
-                // If no --folder-uri matched, try to find by scanning recent folders
-                // Check common paths: user profile, D:\, C:\Users\...\source
-                var candidates = new[]
+            var parts = cleanTitle.Split(new[] { " - ", " – ", " — " }, StringSplitOptions.RemoveEmptyEntries)
+                                  .Select(p => p.Trim())
+                                  .Where(p => !string.IsNullOrEmpty(p))
+                                  .ToArray();
+
+            if (parts.Length == 0) return null;
+
+            // Collect candidate folder names from the title parts
+            var candidateNames = new List<string>();
+            foreach (var part in parts)
+            {
+                // Ignore file names with extensions (e.g. ConversationHtml.cs)
+                if (System.IO.Path.HasExtension(part) && !part.EndsWith(".sln") && !part.EndsWith(".csproj"))
+                    continue;
+                candidateNames.Add(part);
+            }
+
+            Debug.WriteLine($"[WD] Title candidates: [{string.Join(", ", candidateNames)}]");
+
+            // 1. Check if savedPath's directory name matches any candidate
+            if (!string.IsNullOrWhiteSpace(savedPath) && Directory.Exists(savedPath))
+            {
+                var savedName = new DirectoryInfo(savedPath.TrimEnd('\\', '/')).Name;
+                if (candidateNames.Any(c => c.Equals(savedName, StringComparison.OrdinalIgnoreCase)))
                 {
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    @"D:\",
-                    @"C:\",
-                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "source", "repos"),
-                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Projects"),
-                    System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Documents"),
-                };
+                    Debug.WriteLine($"[WD] Title candidate matched savedPath: '{savedPath}'");
+                    return savedPath;
+                }
+            }
 
-                foreach (var root in candidates)
+            // 2. Check if current application working directory / base directory matches
+            var currentBase = AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\', '/');
+            // Check up to 3 parent directories of BaseDirectory (e.g. d:\GAS\GAS)
+            var checkDir = new DirectoryInfo(currentBase);
+            while (checkDir != null)
+            {
+                if (candidateNames.Any(c => c.Equals(checkDir.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Debug.WriteLine($"[WD] Title candidate matched workspace hierarchy: '{checkDir.FullName}'");
+                    return checkDir.FullName;
+                }
+                checkDir = checkDir.Parent;
+            }
+
+            // 3. Search process command lines for --folder-uri matching candidate names
+            var processFolder = TryFindVsCodeProcessFolderMatchingNames(candidateNames);
+            if (processFolder != null) return processFolder;
+
+            // 4. Search standard development directory locations on disk
+            foreach (var candName in candidateNames)
+            {
+                var diskMatch = FindFolderOnDiskByName(candName);
+                if (diskMatch != null) return diskMatch;
+            }
+
+            return null;
+        }
+
+        private static string? FindFolderOnDiskByName(string folderName)
+        {
+            if (string.IsNullOrWhiteSpace(folderName)) return null;
+
+            var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var searchRoots = new[]
+            {
+                @"D:\",
+                @"D:\src",
+                @"C:\src",
+                @"D:\Projects",
+                System.IO.Path.Combine(userProfile, "source", "repos"),
+                System.IO.Path.Combine(userProfile, "Projects"),
+                System.IO.Path.Combine(userProfile, "Documents"),
+                @"C:\"
+            };
+
+            foreach (var root in searchRoots)
+            {
+                try
                 {
                     if (!Directory.Exists(root)) continue;
-                    var candidate = System.IO.Path.Combine(root, wsName);
-                    if (Directory.Exists(candidate))
+
+                    // Direct child check first
+                    var target = System.IO.Path.Combine(root, folderName);
+                    if (Directory.Exists(target)) return target;
+
+                    // Check subdirectories (1 level deep)
+                    var subdirs = Directory.GetDirectories(root);
+                    foreach (var sub in subdirs)
                     {
-                        Debug.WriteLine($"[WD] VS Code title→disk scan match: '{candidate}'");
-                        return candidate;
+                        var subTarget = System.IO.Path.Combine(sub, folderName);
+                        if (Directory.Exists(subTarget)) return subTarget;
                     }
                 }
+                catch { }
             }
-            catch (Exception ex) { Debug.WriteLine($"[WD] VS Code title parse failed: {ex.Message}"); }
+
             return null;
         }
 
         // ────────────────────────────────────────────────────────────────
-        //  VS Code: process tree walk
+        //  WMI / Process Command-Line Search
         // ────────────────────────────────────────────────────────────────
-        //  Walk up from foreground PID to find parent Code.exe with --folder-uri
 
-        private static string? TryGetVsCodeFolderByProcessTree(uint startPid)
+        private static string? TryGetVsCodeFolderByPidOrTree(uint targetPid, string processName)
         {
             try
             {
-                var visited = new HashSet<uint>();
-                var current = startPid;
-
-                while (current > 0 && visited.Add(current))
+                // Query command line of the target PID first
+                if (targetPid > 0)
                 {
-                    var cmdLine = GetCommandLine((int)current);
+                    var cmdLine = GetCommandLine((int)targetPid);
                     if (cmdLine != null)
                     {
-                        var m = Regex.Match(cmdLine, @"--folder-uri=file:///([^""\s]+)", RegexOptions.IgnoreCase);
-                        if (m.Success)
-                        {
-                            var decoded = Uri.UnescapeDataString(m.Groups[1].Value).Replace('/', '\\');
-                            if (Directory.Exists(decoded)) return decoded;
-                        }
+                        var folder = ExtractFolderFromCommandLine(cmdLine);
+                        if (folder != null) return folder;
                     }
-
-                    current = GetParentProcessId(current);
                 }
-            }
-            catch (Exception ex) { Debug.WriteLine($"[WD] Process tree walk failed: {ex.Message}"); }
-            return null;
-        }
 
-        /// <summary>
-        /// Gets the most recently started VS Code instance's workspace.
-        /// </summary>
-        private static string? TryGetMostRecentVsCodeWorkspace()
-        {
-            try
-            {
-                var codeProcesses = Process.GetProcessesByName("Code")
-                    .OrderByDescending(p => { try { return p.StartTime; } catch { return DateTime.MinValue; } })
-                    .ToArray();
-
-                foreach (var p in codeProcesses)
+                // Query command lines of all processes with matching name
+                var procs = Process.GetProcessesByName(processName);
+                foreach (var p in procs)
                 {
                     try
                     {
                         var cmdLine = GetCommandLine(p.Id);
-                        if (cmdLine == null) continue;
-
-                        var m = Regex.Match(cmdLine, @"--folder-uri=file:///([^""\s]+)", RegexOptions.IgnoreCase);
-                        if (!m.Success) continue;
-
-                        var decoded = Uri.UnescapeDataString(m.Groups[1].Value).Replace('/', '\\');
-                        if (Directory.Exists(decoded)) return decoded;
+                        if (cmdLine != null)
+                        {
+                            var folder = ExtractFolderFromCommandLine(cmdLine);
+                            if (folder != null) return folder;
+                        }
                     }
                     catch { }
                     finally { p.Dispose(); }
                 }
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine($"[WD] WMI search error: {ex.Message}"); }
+            return null;
+        }
+
+        private static string? TryFindVsCodeProcessFolderMatchingNames(List<string> candidateNames)
+        {
+            foreach (var procName in VsCodeProcessNames)
+            {
+                try
+                {
+                    var procs = Process.GetProcessesByName(procName);
+                    foreach (var p in procs)
+                    {
+                        try
+                        {
+                            var cmdLine = GetCommandLine(p.Id);
+                            if (cmdLine == null) continue;
+
+                            var folder = ExtractFolderFromCommandLine(cmdLine);
+                            if (folder != null)
+                            {
+                                var dirName = new DirectoryInfo(folder.TrimEnd('\\', '/')).Name;
+                                if (candidateNames.Any(c => c.Equals(dirName, StringComparison.OrdinalIgnoreCase)))
+                                    return folder;
+                            }
+                        }
+                        catch { }
+                        finally { p.Dispose(); }
+                    }
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        private static string? TryScanAllVsCodeProcesses(string? savedPath)
+        {
+            foreach (var procName in VsCodeProcessNames)
+            {
+                try
+                {
+                    var procs = Process.GetProcessesByName(procName);
+                    foreach (var p in procs)
+                    {
+                        try
+                        {
+                            var cmdLine = GetCommandLine(p.Id);
+                            if (cmdLine == null) continue;
+
+                            var folder = ExtractFolderFromCommandLine(cmdLine);
+                            if (folder != null)
+                            {
+                                // Prioritize savedPath if it matches
+                                if (!string.IsNullOrWhiteSpace(savedPath) &&
+                                    folder.Equals(savedPath, StringComparison.OrdinalIgnoreCase))
+                                    return folder;
+
+                                return folder;
+                            }
+                        }
+                        catch { }
+                        finally { p.Dispose(); }
+                    }
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        private static string? ExtractFolderFromCommandLine(string cmdLine)
+        {
+            if (string.IsNullOrWhiteSpace(cmdLine)) return null;
+
+            // Pattern 1: --folder-uri=file:///d:/GAS/GAS
+            var m1 = Regex.Match(cmdLine, @"--folder-uri=file:///([^""\s]+)", RegexOptions.IgnoreCase);
+            if (m1.Success)
+            {
+                var decoded = Uri.UnescapeDataString(m1.Groups[1].Value).Replace('/', '\\');
+                if (Directory.Exists(decoded)) return decoded;
+            }
+
+            // Pattern 2: --workspace=file:///d:/...
+            var m2 = Regex.Match(cmdLine, @"--workspace=file:///([^""\s]+)", RegexOptions.IgnoreCase);
+            if (m2.Success)
+            {
+                var decoded = Uri.UnescapeDataString(m2.Groups[1].Value).Replace('/', '\\');
+                var dir = System.IO.Path.GetDirectoryName(decoded);
+                if (dir != null && Directory.Exists(dir)) return dir;
+            }
+
             return null;
         }
 
         // ────────────────────────────────────────────────────────────────
-        //  File Explorer: match by exact HWND via Shell COM
+        //  File Explorer
         // ────────────────────────────────────────────────────────────────
 
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
@@ -389,7 +535,7 @@ namespace GAS.Core
                     catch { }
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"[WD] Shell COM: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"[WD] Shell COM error: {ex.Message}"); }
             return null;
         }
 
@@ -428,28 +574,21 @@ namespace GAS.Core
         }
 
         // ────────────────────────────────────────────────────────────────
-        //  Terminal workspace detection (parse CWD from title or process)
+        //  Terminal
         // ────────────────────────────────────────────────────────────────
 
         private static string? TryGetTerminalWorkspace(IntPtr hwnd, uint pid)
         {
             try
             {
-                // Windows Terminal title usually contains the CWD
-                int len = GetWindowTextLength(hwnd);
-                if (len > 0)
+                var title = GetTitle(hwnd);
+                if (!string.IsNullOrEmpty(title))
                 {
-                    var sb = new System.Text.StringBuilder(len + 1);
-                    GetWindowText(hwnd, sb, len + 1);
-                    var title = sb.ToString();
-
-                    // Patterns: "PS D:\GAS\GAS>", "C:\Users\...", etc.
                     var m = Regex.Match(title, @"([A-Z]:\\[^\s>|]+)", RegexOptions.IgnoreCase);
                     if (m.Success && Directory.Exists(m.Value))
                         return m.Value;
                 }
 
-                // Try CWD of child processes (pwsh, cmd)
                 var cwd = TryGetWorkingDirectory((int)pid);
                 if (cwd != null) return cwd;
             }
@@ -458,12 +597,9 @@ namespace GAS.Core
         }
 
         // ────────────────────────────────────────────────────────────────
-        //  Process utilities
+        //  Process WMI Helpers
         // ────────────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Reads the full command line of a process via WMI.
-        /// </summary>
         private static string? GetCommandLine(int pid)
         {
             try
@@ -479,27 +615,6 @@ namespace GAS.Core
             return null;
         }
 
-        /// <summary>
-        /// Gets the parent process ID via WMI.
-        /// </summary>
-        private static uint GetParentProcessId(uint pid)
-        {
-            try
-            {
-#pragma warning disable CA1416
-                using var searcher = new System.Management.ManagementObjectSearcher(
-                    $"SELECT ParentProcessId FROM Win32_Process WHERE ProcessId = {pid}");
-                foreach (System.Management.ManagementObject obj in searcher.Get())
-                    return Convert.ToUInt32(obj["ParentProcessId"]);
-#pragma warning restore CA1416
-            }
-            catch { }
-            return 0;
-        }
-
-        /// <summary>
-        /// Gets the working directory of a process via WMI ExecutablePath + cmdline heuristics.
-        /// </summary>
         private static string? TryGetWorkingDirectory(int pid)
         {
             try
