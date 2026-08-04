@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using System.Text.Json;
 using GAS.Core;
 using GAS.Core.Data;
 using GAS.Core.Models;
@@ -21,7 +21,7 @@ namespace GAS.App
     public partial class DrawerWindow : Window
     {
         // ─────────────────────────────────────────────────────────────
-        //  Win32
+        //  Win32 P/Invokes
         // ─────────────────────────────────────────────────────────────
         [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT pt);
         [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(POINT pt, uint flags);
@@ -37,11 +37,13 @@ namespace GAS.App
         [StructLayout(LayoutKind.Sequential)] struct RECT { public int Left, Top, Right, Bottom; }
 
         // ─────────────────────────────────────────────────────────────
-        //  State
+        //  State & Engine
         // ─────────────────────────────────────────────────────────────
         private bool _isIntendedVisible;
         private string? _activeSessionId;
         private Guid? _activeLocalSessionId;
+
+        private readonly ConversationState _conversationState = new();
 
         // WebView2 ready state + message queue
         private bool _webViewReady = false;
@@ -61,12 +63,50 @@ namespace GAS.App
             InitializeComponent();
             try { Wpf.Ui.Controls.WindowBackdrop.ApplyBackdrop(this, Wpf.Ui.Controls.WindowBackdropType.Mica); }
             catch { /* WPF-UI Mica fallback */ }
+
+            WireConversationStateEvents();
             InitWebView();
             LoadSessionHistory();
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  WebView2 initialisation
+        //  ConversationState Event Handlers → Presenter
+        // ─────────────────────────────────────────────────────────────
+        private void WireConversationStateEvents()
+        {
+            _conversationState.OnConversationCleared += () =>
+            {
+                JSRaw("window.gasAPI.clearConversation()");
+            };
+
+            _conversationState.OnUserTurnAdded += (userTurn) =>
+            {
+                JS("gasAPI.addUserTurn", userTurn);
+            };
+
+            _conversationState.OnAgentTurnStarted += () =>
+            {
+                JSRaw("window.gasAPI.startAgentTurn()");
+            };
+
+            _conversationState.OnTextPartUpdated += (textPart) =>
+            {
+                JS("gasAPI.updateTextPart", textPart);
+                if (textPart.IsFinalized)
+                {
+                    SaveLog(textPart.IsReasoning ? "thought" : "text", textPart.FullText);
+                }
+            };
+
+            _conversationState.OnToolPartUpdated += (toolPart) =>
+            {
+                JS("gasAPI.updateToolPart", toolPart);
+                SaveLog($"tool:{toolPart.ToolName}:{toolPart.Status}", toolPart.FormattedOutput);
+            };
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  WebView2 initialization
         // ─────────────────────────────────────────────────────────────
         private async void InitWebView()
         {
@@ -76,22 +116,16 @@ namespace GAS.App
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "GAS", "WebView2");
 
-                var env = await CoreWebView2Environment.CreateAsync(
-                    userDataFolder: dataFolder);
+                var env = await CoreWebView2Environment.CreateAsync(userDataFolder: dataFolder);
 
                 await ConversationView.EnsureCoreWebView2Async(env);
 
-                // Background matches the HTML (#0C0C0F)
                 ConversationView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 12, 12, 15);
-
-                // Disable right-click context menu (we handle copy via our own UI)
                 ConversationView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 ConversationView.CoreWebView2.Settings.IsStatusBarEnabled = false;
                 ConversationView.CoreWebView2.Settings.AreDevToolsEnabled = false;
 
-                // Load the conversation HTML
                 ConversationView.CoreWebView2.NavigateToString(ConversationHtml.GetHtml());
-                // NavigationCompleted will set _webViewReady = true and flush _scriptQueue
             }
             catch (Exception ex)
             {
@@ -102,13 +136,12 @@ namespace GAS.App
         private void ConversationView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             _webViewReady = true;
-            // Flush any messages that arrived before WebView2 was ready
             while (_scriptQueue.Count > 0)
                 _ = ConversationView.CoreWebView2.ExecuteScriptAsync(_scriptQueue.Dequeue());
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  JS bridge
+        //  JS Bridge (ExecuteScriptAsync safely)
         // ─────────────────────────────────────────────────────────────
         private void JS(string method, object payload)
         {
@@ -185,24 +218,25 @@ namespace GAS.App
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  Session lifecycle
+        //  Session Lifecycle
         // ─────────────────────────────────────────────────────────────
         public void OnNewSessionStarted(string sessionId, Guid localSessionId, string prompt)
         {
-            _activeSessionId     = sessionId;
+            _activeSessionId      = sessionId;
             _activeLocalSessionId = localSessionId;
-            JSRaw("window.gasAPI.clearConversation()");
+
+            _conversationState.Clear();
             StartElapsedTimer();
             UpdateStatusStrip("Thinking", _currentModel, _currentWorkspace, null);
-            AddUserMessage(prompt);
+            _conversationState.AddUserTurn(prompt);
             LoadSessionHistory();
         }
 
         public void OnSessionResumed(string sessionId, Guid localSessionId)
         {
-            _activeSessionId     = sessionId;
+            _activeSessionId      = sessionId;
             _activeLocalSessionId = localSessionId;
-            JSRaw("window.gasAPI.clearConversation()");
+            _conversationState.Clear();
 
             try
             {
@@ -210,7 +244,7 @@ namespace GAS.App
                 var session = db.Sessions.Find(localSessionId);
                 if (session == null) return;
 
-                AddUserMessage(session.Intent);
+                _conversationState.AddUserTurn(session.Intent);
 
                 var logs = db.LogEntries
                              .Where(l => l.SessionId == session.Id)
@@ -221,24 +255,31 @@ namespace GAS.App
                 {
                     if (log.Kind is "text" or "thought")
                     {
-                        JS("gasAPI.onPartUpdated", new
+                        var isReasoning = log.Kind == "thought";
+                        _conversationState.ProcessEvent(new OpenCodeEvent
                         {
-                            partID = log.Id.ToString(),
-                            type   = log.Kind == "thought" ? "reasoning" : "text",
-                            text   = log.RawJson
+                            type = "message.part.updated",
+                            properties = JsonSerializer.SerializeToElement(new
+                            {
+                                part = new
+                                {
+                                    id = log.Id.ToString(),
+                                    type = isReasoning ? "reasoning" : "text",
+                                    text = log.RawJson
+                                }
+                            })
                         });
                     }
                     else if (log.Kind.StartsWith("tool:"))
                     {
-                        var p = log.Kind.Split(':');
-                        JS("gasAPI.addTool", new
-                        {
-                            id     = log.Id.ToString(),
-                            name   = p.ElementAtOrDefault(1) ?? "Tool",
-                            status = p.ElementAtOrDefault(2) ?? "completed",
-                            input  = (string?)null,
-                            output = log.RawJson
-                        });
+                        var parts = log.Kind.Split(':');
+                        var toolName = parts.ElementAtOrDefault(1) ?? "Tool";
+                        var status   = parts.ElementAtOrDefault(2) ?? "completed";
+
+                        var normalized = ConversationState.NormalizeToolPart(
+                            log.Id.ToString(), toolName, status, null, log.RawJson);
+
+                        JS("gasAPI.updateToolPart", normalized);
                     }
                 }
             }
@@ -248,84 +289,16 @@ namespace GAS.App
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  Event dispatch from OpenCode
+        //  Event Dispatch from OpenCode
         // ─────────────────────────────────────────────────────────────
         public void HandleIncomingEvent(OpenCodeEvent ev)
         {
             if (string.IsNullOrEmpty(_activeSessionId)) return;
-
-            switch (ev.type)
-            {
-                case "message.part.delta":
-                    HandlePartDelta(ev.properties);
-                    break;
-                case "message.part.updated":
-                    HandlePartUpdated(ev.properties);
-                    break;
-                case "session.error":
-                case "auth.error":
-                case "engine.error":
-                    var errId = "err_" + Guid.NewGuid().ToString("N")[..8];
-                    JS("gasAPI.onPartUpdated", new
-                    {
-                        partID = errId,
-                        type   = "text",
-                        text   = $"⚠️ **Error** `{ev.type}`: {ev.ExtractErrorMessage()}"
-                    });
-                    break;
-            }
-        }
-
-        private void HandlePartDelta(JsonElement props)
-        {
-            var partID = GetStr(props, "partID");
-            var field  = GetStr(props, "field");
-            var delta  = GetStr(props, "delta");
-            if (string.IsNullOrEmpty(partID) || string.IsNullOrEmpty(delta)) return;
-
-            JS("gasAPI.onPartDelta", new
-            {
-                partID,
-                delta,
-                type = field == "reasoning" ? "reasoning" : "text"
-            });
-        }
-
-        private void HandlePartUpdated(JsonElement props)
-        {
-            // part may be nested under "part" key
-            var part = props.TryGetProperty("part", out var p) ? p : props;
-            var type = GetStr(part, "type");
-            var id   = GetStr(part, "id") ?? GetStr(props, "partID");
-            if (string.IsNullOrEmpty(id)) return;
-
-            if (type == "text")
-            {
-                var text = GetStr(part, "text") ?? string.Empty;
-                JS("gasAPI.onPartUpdated", new { partID = id, type = "text", text });
-                SaveLog("text", text);
-            }
-            else if (type == "reasoning")
-            {
-                var text = GetStr(part, "text") ?? string.Empty;
-                JS("gasAPI.onPartUpdated", new { partID = id, type = "reasoning", text });
-                SaveLog("thought", text);
-            }
-            else if (type == "tool")
-            {
-                var state   = part.TryGetProperty("state", out var s) ? s : part;
-                var toolName = GetStr(state, "tool") ?? GetStr(state, "name") ?? "Tool";
-                var status  = GetStr(state, "status") ?? "running";
-                var input   = state.TryGetProperty("input",  out var inp) ? SafeStr(inp)  : null;
-                var output  = state.TryGetProperty("output", out var out_) ? SafeStr(out_) : null;
-
-                JS("gasAPI.addTool", new { id, name = toolName, status, input, output });
-                SaveLog($"tool:{toolName}:{status}", output ?? input ?? string.Empty);
-            }
+            _conversationState.ProcessEvent(ev);
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  Status strip
+        //  Status Strip
         // ─────────────────────────────────────────────────────────────
         public void UpdateStatusStrip(string? state, string? model, string? workspace, TimeSpan? elapsed)
         {
@@ -334,7 +307,6 @@ namespace GAS.App
                 if (!string.IsNullOrEmpty(model))     _currentModel     = model;
                 if (!string.IsNullOrEmpty(workspace)) _currentWorkspace = workspace;
 
-                // Only update state pill if state is provided
                 if (!string.IsNullOrEmpty(state))
                 {
                     var (text, fg, borderHex, running) = state.ToLower() switch
@@ -357,7 +329,6 @@ namespace GAS.App
                     }
                 }
 
-                // Always update model/workspace labels
                 StatusModelLabel.Text     = _currentModel;
                 var projectName = WorkspaceDetector.DeriveProjectName(_currentWorkspace);
                 WorkspaceNameText.Text    = string.IsNullOrEmpty(projectName) ? "GAS" : projectName;
@@ -410,19 +381,7 @@ namespace GAS.App
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  User message
-        // ─────────────────────────────────────────────────────────────
-        private void AddUserMessage(string text)
-        {
-            JS("gasAPI.addUserMessage", new
-            {
-                text,
-                timestamp = DateTime.Now.ToString("h:mm tt")
-            });
-        }
-
-        // ─────────────────────────────────────────────────────────────
-        //  Session history (sidebar)
+        //  Session History Sidebar
         // ─────────────────────────────────────────────────────────────
         private void LoadSessionHistory()
         {
@@ -434,23 +393,20 @@ namespace GAS.App
                 {
                     MockSessionsList.ItemsSource = sessions.Select(s => new SessionDisplayItem
                     {
-                        Id               = s.Id.ToString(),
+                        Id                = s.Id.ToString(),
                         OpenCodeSessionId = s.OpenCodeSessionId,
-                        Intent           = s.Intent,
-                        DateStr          = s.CreatedAt.ToString("MMM dd, h:mm tt"),
-                        Icon             = s.Status == SessionStatus.Completed
-                                               ? Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24
-                                               : Wpf.Ui.Controls.SymbolRegular.Record24,
-                        IconColor        = s.Status == SessionStatus.Completed ? "#10B981" : "#64748B"
+                        Intent            = s.Intent,
+                        DateStr           = s.CreatedAt.ToString("MMM dd, h:mm tt"),
+                        Icon              = s.Status == SessionStatus.Completed
+                                                ? Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24
+                                                : Wpf.Ui.Controls.SymbolRegular.Record24,
+                        IconColor         = s.Status == SessionStatus.Completed ? "#10B981" : "#64748B"
                     }).ToList();
                 });
             }
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"History load failed: {ex.Message}"); }
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  Database
-        // ─────────────────────────────────────────────────────────────
         private void SaveLog(string kind, string content)
         {
             if (!_activeLocalSessionId.HasValue) return;
@@ -469,7 +425,7 @@ namespace GAS.App
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  UI event handlers
+        //  UI Event Handlers
         // ─────────────────────────────────────────────────────────────
         private void Window_Deactivated(object sender, EventArgs e) => HideDrawer();
 
@@ -484,7 +440,7 @@ namespace GAS.App
         {
             _activeSessionId      = null;
             _activeLocalSessionId = null;
-            JSRaw("window.gasAPI.clearConversation()");
+            _conversationState.Clear();
         }
 
         private bool _isHistoryOpen = false;
@@ -494,18 +450,18 @@ namespace GAS.App
             _isHistoryOpen = !_isHistoryOpen;
             if (_isHistoryOpen)
             {
-                HistoryColumn.Width  = new GridLength(220);
-                SplitterColumn.Width = GridLength.Auto;
-                HistoryPanel.Visibility       = Visibility.Visible;
-                SidebarSplitter.Visibility    = Visibility.Visible;
+                HistoryColumn.Width       = new GridLength(220);
+                SplitterColumn.Width      = GridLength.Auto;
+                HistoryPanel.Visibility    = Visibility.Visible;
+                SidebarSplitter.Visibility = Visibility.Visible;
                 UpdateWindowWidth(700);
             }
             else
             {
-                HistoryColumn.Width  = new GridLength(0);
-                SplitterColumn.Width = new GridLength(0);
-                HistoryPanel.Visibility       = Visibility.Collapsed;
-                SidebarSplitter.Visibility    = Visibility.Collapsed;
+                HistoryColumn.Width       = new GridLength(0);
+                SplitterColumn.Width      = new GridLength(0);
+                HistoryPanel.Visibility    = Visibility.Collapsed;
+                SidebarSplitter.Visibility = Visibility.Collapsed;
                 UpdateWindowWidth(460);
             }
         }
@@ -528,14 +484,14 @@ namespace GAS.App
                     .Where(s => string.IsNullOrEmpty(q) || s.Intent.ToLower().Contains(q))
                     .Select(s => new SessionDisplayItem
                     {
-                        Id               = s.Id.ToString(),
+                        Id                = s.Id.ToString(),
                         OpenCodeSessionId = s.OpenCodeSessionId,
-                        Intent           = s.Intent,
-                        DateStr          = s.CreatedAt.ToString("MMM dd, h:mm tt"),
-                        Icon             = s.Status == SessionStatus.Completed
-                                               ? Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24
-                                               : Wpf.Ui.Controls.SymbolRegular.Record24,
-                        IconColor        = s.Status == SessionStatus.Completed ? "#10B981" : "#64748B"
+                        Intent            = s.Intent,
+                        DateStr           = s.CreatedAt.ToString("MMM dd, h:mm tt"),
+                        Icon              = s.Status == SessionStatus.Completed
+                                                ? Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24
+                                                : Wpf.Ui.Controls.SymbolRegular.Record24,
+                        IconColor         = s.Status == SessionStatus.Completed ? "#10B981" : "#64748B"
                     }).ToList();
             }
             catch { }
@@ -546,7 +502,7 @@ namespace GAS.App
             if (MockSessionsList.SelectedItem is not SessionDisplayItem sel) return;
             _activeSessionId      = sel.OpenCodeSessionId;
             _activeLocalSessionId = Guid.TryParse(sel.Id, out var g) ? g : null;
-            JSRaw("window.gasAPI.clearConversation()");
+            _conversationState.Clear();
 
             try
             {
@@ -555,28 +511,37 @@ namespace GAS.App
                              .Where(l => l.SessionId == Guid.Parse(sel.Id))
                              .OrderBy(l => l.CreatedAt).ToList();
 
-                AddUserMessage(sel.Intent);
+                _conversationState.AddUserTurn(sel.Intent);
 
                 foreach (var log in logs)
                 {
                     if (log.Kind is "text" or "thought")
-                        JS("gasAPI.onPartUpdated", new
+                    {
+                        var isReasoning = log.Kind == "thought";
+                        _conversationState.ProcessEvent(new OpenCodeEvent
                         {
-                            partID = log.Id.ToString(),
-                            type   = log.Kind == "thought" ? "reasoning" : "text",
-                            text   = log.RawJson
+                            type = "message.part.updated",
+                            properties = JsonSerializer.SerializeToElement(new
+                            {
+                                part = new
+                                {
+                                    id = log.Id.ToString(),
+                                    type = isReasoning ? "reasoning" : "text",
+                                    text = log.RawJson
+                                }
+                            })
                         });
+                    }
                     else if (log.Kind.StartsWith("tool:"))
                     {
-                        var p = log.Kind.Split(':');
-                        JS("gasAPI.addTool", new
-                        {
-                            id     = log.Id.ToString(),
-                            name   = p.ElementAtOrDefault(1) ?? "Tool",
-                            status = p.ElementAtOrDefault(2) ?? "completed",
-                            input  = (string?)null,
-                            output = log.RawJson
-                        });
+                        var parts = log.Kind.Split(':');
+                        var toolName = parts.ElementAtOrDefault(1) ?? "Tool";
+                        var status   = parts.ElementAtOrDefault(2) ?? "completed";
+
+                        var normalized = ConversationState.NormalizeToolPart(
+                            log.Id.ToString(), toolName, status, null, log.RawJson);
+
+                        JS("gasAPI.updateToolPart", normalized);
                     }
                 }
             }
@@ -599,26 +564,14 @@ namespace GAS.App
             var text = InputTextBox.Text.Trim();
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(_activeSessionId)) return;
             InputTextBox.Text = string.Empty;
-            AddUserMessage(text);
+            _conversationState.AddUserTurn(text);
             SaveLog("user", text);
             (Application.Current as App)?.StartRealAgentRun(text, _activeSessionId);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        //  Helpers
-        // ─────────────────────────────────────────────────────────────
         private static SolidColorBrush Brush(string hex) =>
             (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;
 
-        private static string? GetStr(JsonElement el, string key) =>
-            el.TryGetProperty(key, out var v) ? v.GetString() : null;
-
-        private static string? SafeStr(JsonElement el) =>
-            el.ValueKind == JsonValueKind.String ? el.GetString() : el.ToString();
-
-        // ─────────────────────────────────────────────────────────────
-        //  Data model
-        // ─────────────────────────────────────────────────────────────
         public class SessionDisplayItem
         {
             public string Id { get; set; } = string.Empty;

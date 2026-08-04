@@ -5,7 +5,7 @@ namespace GAS.App
     /// <summary>
     /// Provides the self-contained HTML/CSS/JS conversation frontend
     /// that is loaded into the WebView2 control.
-    /// All application logic stays in WPF; this file is UI-only.
+    /// All application logic stays in C#; this file is UI rendering only.
     /// </summary>
     internal static class ConversationHtml
     {
@@ -291,9 +291,8 @@ html,body{
 
 // ─── State ─────────────────────────────────────────────────────────────────
 const S = {
-  turns: {},           // Map of partID -> part metadata
-  activeTurnEl: null,  // Current agent turn container element
-  lastUserPrompt: '',  // Last prompt text sent by user
+  parts: {},          // Map of partID -> DOM element info
+  activeTurnEl: null, // Current agent turn container element
   userScrolled: false
 };
 
@@ -328,8 +327,6 @@ function esc(s) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ─── Ensure Active Agent Turn Container ─────────────────────────────────────
-// Creates exactly ONE agent turn container with ONE badge per assistant response turn
 function getOrCreateActiveTurn() {
   if (!S.activeTurnEl) {
     const turn = document.createElement('div');
@@ -344,46 +341,6 @@ function getOrCreateActiveTurn() {
     S.activeTurnEl = turn.querySelector('.turn-body');
   }
   return S.activeTurnEl;
-}
-
-// ─── Tool Output Formatter ─────────────────────────────────────────────────
-function formatToolOutput(raw) {
-  if (!raw || !raw.trim()) return 'No output details';
-  const str = String(raw).trim();
-
-  // If raw XML from OpenCode tool (dir listing, read, etc.)
-  if (str.includes('<path>') || str.includes('<entries>') || str.includes('<content>')) {
-    let result = '';
-
-    const pathMatch = str.match(/<path>([\s\S]*?)<\/path>/i);
-    const typeMatch = str.match(/<type>([\s\S]*?)<\/type>/i);
-    const entriesMatch = str.match(/<entries>([\s\S]*?)<\/entries>/i);
-    const contentMatch = str.match(/<content>([\s\S]*?)<\/content>/i);
-
-    if (pathMatch) result += `Path: ${pathMatch[1].trim()}\n`;
-    if (typeMatch) result += `Type: ${typeMatch[1].trim()}\n`;
-
-    if (entriesMatch) {
-      const items = entriesMatch[1].trim().split(/\s+/).filter(Boolean);
-      result += `\nEntries (${items.length}):\n` + items.map(i => `  • ${i}`).join('\n');
-    } else if (contentMatch) {
-      result += `\nContent:\n${contentMatch[1].trim()}`;
-    } else {
-      // Fallback: strip XML tags cleanly
-      result += '\n' + str.replace(/<[^>]+>/g, '').trim();
-    }
-    return result;
-  }
-
-  // If raw JSON object/array
-  if ((str.startsWith('{') && str.endsWith('}')) || (str.startsWith('[') && str.endsWith(']'))) {
-    try {
-      const obj = JSON.parse(str);
-      return JSON.stringify(obj, null, 2);
-    } catch { }
-  }
-
-  return str;
 }
 
 // ─── Markdown parser ────────────────────────────────────────────────────────
@@ -490,21 +447,6 @@ function toggleTool(hdr) {
   caret.classList.toggle('open', open);
 }
 
-function toolMeta(name) {
-  const n = (name||'').toLowerCase();
-  if (n.includes('read'))   return {icon:'📄', label:'Reading file'};
-  if (n.includes('write'))  return {icon:'✏️',  label:'Writing file'};
-  if (n.includes('create')) return {icon:'📝', label:'Creating file'};
-  if (n.includes('delete')) return {icon:'🗑️',  label:'Deleting'};
-  if (n.includes('list')||n.includes('dir')) return {icon:'📁', label:'Listing directory'};
-  if (n.includes('search')||n.includes('grep')) return {icon:'🔍', label:'Searching'};
-  if (n.includes('bash')||n.includes('run')||n.includes('exec')||n.includes('command')) return {icon:'⚡', label:'Running command'};
-  if (n.includes('browser')) return {icon:'🌐', label:'Browser'};
-  if (n.includes('git'))    return {icon:'🔀', label:'Git'};
-  if (n.includes('patch')||n.includes('edit')) return {icon:'✏️', label:'Editing'};
-  return {icon:'⚙️', label: name||'Tool'};
-}
-
 function statusClass(s) {
   const v = (s||'').toLowerCase();
   if (v==='completed'||v==='done') return 'done';
@@ -519,7 +461,7 @@ function statusLabel(s) {
   return '⋯ Running';
 }
 
-// ─── GAS API (called from WPF via ExecuteScriptAsync) ───────────────────────
+// ─── Pure Presenter API (Called by C# ConversationState) ─────────────────────
 window.gasAPI = {
 
   clearConversation() {
@@ -530,19 +472,16 @@ window.gasAPI = {
       <h2>Start a conversation</h2>
       <p>Use the hotkey or command bar<br>to ask GAS anything.</p>
     </div>`;
-    S.turns = {};
+    S.parts = {};
     S.activeTurnEl = null;
-    S.lastUserPrompt = '';
     S.userScrolled = false;
     jmp.classList.remove('show');
   },
 
-  // ── User message ─────────────────────────────────────────────────────────
-  addUserMessage(jsonStr) {
+  addUserTurn(jsonStr) {
     const {text, timestamp} = JSON.parse(jsonStr);
     hideEmpty();
-    S.activeTurnEl = null; // Reset active turn so next agent response gets a fresh turn
-    S.lastUserPrompt = (text||'').trim();
+    S.activeTurnEl = null;
 
     if (timestamp) {
       const ts = document.createElement('div');
@@ -557,21 +496,24 @@ window.gasAPI = {
     scrollToBottom(true);
   },
 
-  // ── Agent part streaming ─────────────────────────────────────────────────
-  onPartDelta(jsonStr) {
-    const {partID, delta, type} = JSON.parse(jsonStr);
+  startAgentTurn() {
+    hideEmpty();
+    getOrCreateActiveTurn();
+  },
+
+  updateTextPart(jsonStr) {
+    const {partID, delta, fullText, isReasoning, isFinalized} = JSON.parse(jsonStr);
     hideEmpty();
 
-    if (!S.turns[partID]) {
+    if (!S.parts[partID]) {
       const turnBody = getOrCreateActiveTurn();
 
-      if (type === 'text') {
+      if (!isReasoning) {
         const textEl = document.createElement('div');
         textEl.className = 'agent-text streaming';
         turnBody.appendChild(textEl);
-        S.turns[partID] = {type:'text', content:textEl, raw:''};
-
-      } else if (type === 'reasoning') {
+        S.parts[partID] = {type:'text', content:textEl};
+      } else {
         const wrap = document.createElement('div');
         wrap.className = 'reasoning-wrap';
         wrap.innerHTML = `
@@ -582,147 +524,68 @@ window.gasAPI = {
           </div>
           <div class="reasoning-body open streaming"></div>`;
         turnBody.appendChild(wrap);
-        S.turns[partID] = {type:'reasoning', el:wrap, content:wrap.querySelector('.reasoning-body'), preview:wrap.querySelector('.r-preview'), raw:''};
+        S.parts[partID] = {type:'reasoning', el:wrap, content:wrap.querySelector('.reasoning-body'), preview:wrap.querySelector('.r-preview')};
       }
     }
 
-    const t = S.turns[partID];
-    if (!t || !t.content) return;
-    t.raw += delta;
+    const p = S.parts[partID];
+    if (!p || !p.content) return;
 
-    // Filter prompt echoes in initial text part
-    if (t.type === 'text' && S.lastUserPrompt && (t.raw.trim() === S.lastUserPrompt || S.lastUserPrompt.startsWith(t.raw.trim()))) {
-      // Prompt echo detected — don't display prompt echo text
-      t.content.style.display = 'none';
-      return;
-    }
-
-    if (t.content.style.display === 'none') {
-      t.content.style.display = '';
-    }
-
-    t.content.textContent = t.raw;
-    scrollToBottom();
-  },
-
-  // ── Finalize / replay part ───────────────────────────────────────────────
-  onPartUpdated(jsonStr) {
-    const {partID, type, text} = JSON.parse(jsonStr);
-    hideEmpty();
-
-    // Ignore prompt echo text parts entirely
-    if (type === 'text' && S.lastUserPrompt && text && (text.trim() === S.lastUserPrompt || S.lastUserPrompt.startsWith(text.trim()))) {
-      if (S.turns[partID] && S.turns[partID].content) {
-        S.turns[partID].content.remove();
-        delete S.turns[partID];
-      }
-      return;
-    }
-
-    if (!S.turns[partID]) {
-      const turnBody = getOrCreateActiveTurn();
-
-      if (type === 'text') {
-        if (!text || !text.trim()) return;
-        const textEl = document.createElement('div');
-        textEl.className = 'agent-text';
-        textEl.innerHTML = md(text);
-        turnBody.appendChild(textEl);
-        S.turns[partID] = {type:'text', content:textEl, raw:text};
-      } else if (type === 'reasoning') {
-        if (!text || !text.trim()) return;
-        const first = text.split('\n').find(l=>l.trim())||'';
-        const prev  = first.length > 80 ? first.slice(0,80)+'…' : first;
-        const wrap  = document.createElement('div');
-        wrap.className = 'reasoning-wrap';
-        wrap.innerHTML = `
-          <div class="reasoning-header" onclick="toggleReasoning(this)">
-            <span class="r-caret">▶</span>
-            <span class="r-lbl">🧠 Reasoning</span>
-            <span class="r-preview">· ${esc(prev)}</span>
-          </div>
-          <div class="reasoning-body">${esc(text)}</div>`;
-        turnBody.appendChild(wrap);
-        S.turns[partID] = {type:'reasoning', el:wrap, raw:text};
-      }
-      scrollToBottom();
-      return;
-    }
-
-    const t = S.turns[partID];
-    t.raw = text;
-
-    if (type === 'text' && t.content) {
-      if (!text || !text.trim()) {
-        t.content.remove();
-        delete S.turns[partID];
+    if (isFinalized) {
+      p.content.classList.remove('streaming');
+      if (!isReasoning) {
+        p.content.innerHTML = md(fullText);
       } else {
-        t.content.style.display = '';
-        t.content.classList.remove('streaming');
-        t.content.innerHTML = md(text);
+        p.content.textContent = fullText;
+        p.content.classList.remove('open');
+        if (p.el) {
+          const caret = p.el.querySelector('.r-caret');
+          if (caret) caret.classList.remove('open');
+          if (p.preview) {
+            const first = fullText.split('\n').find(l=>l.trim())||'';
+            p.preview.textContent = '· ' + (first.length > 80 ? first.slice(0,80)+'…' : first);
+            p.preview.style.display = '';
+          }
+        }
       }
-
-    } else if (type === 'reasoning' && t.content) {
-      const body  = t.content;
-      const caret = t.el.querySelector('.r-caret');
-      const prev  = t.preview;
-      body.classList.remove('streaming', 'open');
-      caret.classList.remove('open');
-      body.textContent = text;
-      if (prev) {
-        const first = text.split('\n').find(l=>l.trim())||'';
-        prev.textContent = '· ' + (first.length > 80 ? first.slice(0,80)+'…' : first);
-        prev.style.display = '';
-      }
+    } else {
+      p.content.textContent = fullText;
     }
 
     scrollToBottom();
   },
 
-  // ── Tool activity ─────────────────────────────────────────────────────────
-  addTool(jsonStr) {
-    const {id, name, status, input, output} = JSON.parse(jsonStr);
+  updateToolPart(jsonStr) {
+    const {toolID, toolName, status, displayLabel, icon, formattedOutput} = JSON.parse(jsonStr);
     hideEmpty();
 
-    if (S.turns[id]) { this.updateTool(jsonStr); return; }
+    if (!S.parts[toolID]) {
+      const turnBody = getOrCreateActiveTurn();
+      const sc       = statusClass(status);
+      const sl       = statusLabel(status);
 
-    const turnBody = getOrCreateActiveTurn();
-    const meta     = toolMeta(name);
-    const formatted = formatToolOutput(output || input);
-    const sc       = statusClass(status);
-    const sl       = statusLabel(status);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'tool-wrap';
-    wrap.dataset.toolId = id;
-    wrap.innerHTML = `
-      <div class="tool-header" onclick="toggleTool(this)">
-        <span class="t-caret">▶</span>
-        <span>${meta.icon}</span>
-        <span class="t-name">${esc(meta.label)}</span>
-        <span class="t-chip ${sc}">${sl}</span>
-      </div>
-      <div class="tool-body">${esc(formatted)}</div>`;
-    turnBody.appendChild(wrap);
-    S.turns[id] = {type:'tool', el:wrap};
-    scrollToBottom();
-  },
-
-  updateTool(jsonStr) {
-    const {id, status, output, input} = JSON.parse(jsonStr);
-    const t = S.turns[id];
-    if (!t) return;
-
-    const chip = t.el.querySelector('.t-chip');
-    const body = t.el.querySelector('.tool-body');
-    const sc   = statusClass(status);
-    const sl   = statusLabel(status);
-
-    if (chip) { chip.className = `t-chip ${sc}`; chip.textContent = sl; }
-    if (body) {
-      const formatted = formatToolOutput(output || input || body.textContent);
-      body.textContent = formatted;
+      const wrap = document.createElement('div');
+      wrap.className = 'tool-wrap';
+      wrap.dataset.toolId = toolID;
+      wrap.innerHTML = `
+        <div class="tool-header" onclick="toggleTool(this)">
+          <span class="t-caret">▶</span>
+          <span>${icon}</span>
+          <span class="t-name">${esc(displayLabel)}</span>
+          <span class="t-chip ${sc}">${sl}</span>
+        </div>
+        <div class="tool-body">${esc(formattedOutput)}</div>`;
+      turnBody.appendChild(wrap);
+      S.parts[toolID] = {type:'tool', el:wrap};
+    } else {
+      const p = S.parts[toolID];
+      const chip = p.el.querySelector('.t-chip');
+      const body = p.el.querySelector('.tool-body');
+      if (chip) { chip.className = `t-chip ${statusClass(status)}`; chip.textContent = statusLabel(status); }
+      if (body) { body.textContent = formattedOutput; }
     }
+
+    scrollToBottom();
   }
 };
 </script>

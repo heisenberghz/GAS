@@ -242,18 +242,27 @@ namespace GAS.App
                 _lastForegroundHwnd = GetForegroundWindow();
                 System.Diagnostics.Debug.WriteLine($"[Hotkey] Captured foreground HWND: {_lastForegroundHwnd}");
 
-                // Detect workspace from the foreground window immediately
                 var settings = SettingsManager.Load();
-                var wsInfo = WorkspaceDetector.Detect(settings.LastWorkspacePath, _lastForegroundHwnd);
-                _workspacePath = wsInfo.Path;
-                System.Diagnostics.Debug.WriteLine($"[Hotkey] Detected workspace: '{wsInfo.Path}' via {wsInfo.Method} → '{wsInfo.ProjectName}'");
+                var context  = ContextDetector.Detect(_lastForegroundHwnd, settings.LastWorkspacePath);
+
+                if (context.HasWorkspace && !string.IsNullOrEmpty(context.WorkspacePath))
+                {
+                    _workspacePath = context.WorkspacePath;
+                }
+                else if (!string.IsNullOrEmpty(settings.LastWorkspacePath) && Directory.Exists(settings.LastWorkspacePath))
+                {
+                    _workspacePath = settings.LastWorkspacePath;
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[Hotkey] Context: App='{context.AppName}', HasWorkspace={context.HasWorkspace}, Path='{_workspacePath}', Method='{context.DetectionMethod}'");
 
                 // Update command bar context
-                _commandBar.UpdateContext(_workspacePath, GetActiveProviderName());
+                var displayWorkspace = context.HasWorkspace ? _workspacePath : $"{context.AppName} (Workspace: {WorkspaceDetector.DeriveProjectName(_workspacePath)})";
+                _commandBar.UpdateContext(displayWorkspace, GetActiveProviderName());
 
-                // Update drawer header with detected workspace
+                // Update drawer header with context info
                 _drawer?.UpdateConnectionStatus(true, _workspacePath);
-                _drawer?.UpdateStatusStrip(null, null, _workspacePath, null);
+                _drawer?.UpdateStatusStrip(null, null, context.HasWorkspace ? _workspacePath : $"{context.AppName} • {WorkspaceDetector.DeriveProjectName(_workspacePath)}", null);
 
                 _commandBar.ShowCommandBar();
             }
@@ -312,29 +321,36 @@ namespace GAS.App
             {
                 try
                 {
-                    // Resolve workspace using the foreground HWND captured at hotkey time
                     var settings = SettingsManager.Load();
                     
                     IntPtr hwnd = IntPtr.Zero;
                     Dispatcher.Invoke(() => hwnd = _lastForegroundHwnd);
 
-                    var workspaceInfo = WorkspaceDetector.Detect(settings.LastWorkspacePath, hwnd);
-                    _workspacePath = workspaceInfo.Path;
+                    var context = ContextDetector.Detect(hwnd, settings.LastWorkspacePath);
+                    if (context.HasWorkspace && !string.IsNullOrEmpty(context.WorkspacePath))
+                    {
+                        _workspacePath = context.WorkspacePath;
+                    }
+                    else if (!string.IsNullOrEmpty(settings.LastWorkspacePath) && Directory.Exists(settings.LastWorkspacePath))
+                    {
+                        _workspacePath = settings.LastWorkspacePath;
+                    }
                     
-                    System.Diagnostics.Debug.WriteLine($"[AgentRun] Using workspace '{_workspacePath}' detected via {workspaceInfo.Method} → project '{workspaceInfo.ProjectName}'");
+                    System.Diagnostics.Debug.WriteLine($"[AgentRun] App='{context.AppName}', Workspace='{_workspacePath}', Method='{context.DetectionMethod}'");
 
-                    // Push workspace info to drawer immediately
+                    // Push context info to drawer immediately
                     Dispatcher.Invoke(() =>
                     {
                         _drawer?.UpdateConnectionStatus(true, _workspacePath);
-                        _drawer?.UpdateStatusStrip("Thinking", null, _workspacePath, null);
+                        var statusHeader = context.HasWorkspace ? _workspacePath : $"{context.AppName} • {WorkspaceDetector.DeriveProjectName(_workspacePath)}";
+                        _drawer?.UpdateStatusStrip("Thinking", null, statusHeader, null);
                     });
 
                     // Ensure the OpenCode server is running in the correct workspace directory
                     await EnsureServerRunningInDirectoryAsync(_workspacePath);
 
-                    // Persist the detected path so it becomes the default next time
-                    if (settings.LastWorkspacePath != _workspacePath)
+                    // Persist the detected path if it came from an active code workspace
+                    if (context.HasWorkspace && settings.LastWorkspacePath != _workspacePath)
                     {
                         settings.LastWorkspacePath = _workspacePath;
                         SettingsManager.Save(settings);
