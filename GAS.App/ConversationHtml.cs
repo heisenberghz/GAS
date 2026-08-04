@@ -9,23 +9,15 @@ namespace GAS.App
     /// </summary>
     internal static class ConversationHtml
     {
-        // ── Public entry point ──────────────────────────────────────────────
-
-        /// <summary>Returns the complete HTML document as a string.</summary>
         public static string GetHtml() => HtmlContent;
 
-        // ── Helper: serialize a C# payload to a JS-safe string literal ──────
-        // Usage: CallJs("gasAPI.addUserMessage", payload)
-        // Produces: window.gasAPI.addUserMessage("{\"text\":\"hello\"}")
-        // The double-serialization makes the JSON a valid JS string literal.
         public static string BuildCall(string method, object payload)
         {
             var json = JsonSerializer.Serialize(payload);
-            var jsLiteral = JsonSerializer.Serialize(json); // JSON-encode the JSON string → safe JS literal
+            var jsLiteral = JsonSerializer.Serialize(json);
             return $"window.{method}({jsLiteral})";
         }
 
-        // ── The HTML ────────────────────────────────────────────────────────
         private const string HtmlContent = """
 <!DOCTYPE html>
 <html lang="en">
@@ -80,7 +72,7 @@ html,body{
 }
 
 /* ─── User message ───────────────────────────────────────────────── */
-.user-row{display:flex;justify-content:flex-end;margin:6px 0}
+.user-row{display:flex;justify-content:flex-end;margin:12px 0 16px}
 .user-bubble{
   background:linear-gradient(140deg,#4338CA,#6366F1);
   color:#fff;
@@ -91,35 +83,38 @@ html,body{
   line-height:1.6;
   cursor:text;
   user-select:text;
-  white-space:pre-wrap;
-  word-break:break-word;
+  white-space:pre-wrap;word-break:break-word;
 }
 
-/* ─── Agent turn ─────────────────────────────────────────────────── */
-.agent-row{margin:12px 0 6px}
+/* ─── Agent Turn Container (Single Badge Per Turn) ─────────────────── */
+.agent-turn{
+  margin:16px 0 20px;
+}
 .agent-badge{
   display:flex;align-items:center;gap:7px;
-  margin-bottom:7px;user-select:none;
+  margin-bottom:10px;user-select:none;
 }
 .agent-dot{
   width:19px;height:19px;border-radius:50%;flex-shrink:0;
   background:linear-gradient(140deg,#4338CA,#7C3AED);
   display:flex;align-items:center;justify-content:center;
-  font-size:9px;font-weight:700;color:#fff;letter-spacing:0;
+  font-size:9px;font-weight:700;color:#fff;
 }
-.agent-label{font-size:11px;font-weight:600;color:#2D3748}
+.agent-label{font-size:11px;font-weight:600;color:#4A5E78}
 
-/* Agent text content */
-.agent-content{
+.turn-body{
+  display:flex;flex-direction:column;gap:10px;
+}
+
+/* Agent text block */
+.agent-text{
   font-size:13.5px;line-height:1.75;
   color:#B8C5D4;
   cursor:text;user-select:text;
   word-break:break-word;
 }
-
-/* Streaming cursor */
-.agent-content.streaming{white-space:pre-wrap}
-.agent-content.streaming::after{
+.agent-text.streaming{white-space:pre-wrap}
+.agent-text.streaming::after{
   content:'▋';
   animation:blink .75s step-end infinite;
   color:#6366F1;margin-left:1px;
@@ -127,23 +122,22 @@ html,body{
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
 /* ─── Markdown ───────────────────────────────────────────────────── */
-.agent-content p{margin-bottom:10px}
-.agent-content p:last-child{margin-bottom:0}
-.agent-content h1{font-size:20px;font-weight:700;color:#E2ECF5;margin:20px 0 10px}
-.agent-content h2{font-size:16.5px;font-weight:600;color:#D0DCE8;margin:16px 0 8px}
-.agent-content h3{font-size:14px;font-weight:600;color:#B8C5D4;margin:12px 0 6px}
-.agent-content strong{font-weight:600;color:#D0DCE8}
-.agent-content em{font-style:italic;color:#8898AA}
-.agent-content del{text-decoration:line-through;color:#4A5568}
-.agent-content a{color:#818CF8;text-decoration:none}
-.agent-content a:hover{text-decoration:underline}
-.agent-content hr{border:none;border-top:1px solid #0F1626;margin:18px 0}
-.agent-content ul,.agent-content ol{padding-left:22px;margin-bottom:10px}
-.agent-content li{margin-bottom:4px}
-.agent-content li p{margin-bottom:0}
+.agent-text p{margin-bottom:10px}
+.agent-text p:last-child{margin-bottom:0}
+.agent-text h1{font-size:18px;font-weight:700;color:#E2ECF5;margin:16px 0 8px}
+.agent-text h2{font-size:16px;font-weight:600;color:#D0DCE8;margin:14px 0 6px}
+.agent-text h3{font-size:14px;font-weight:600;color:#B8C5D4;margin:12px 0 4px}
+.agent-text strong{font-weight:600;color:#D0DCE8}
+.agent-text em{font-style:italic;color:#8898AA}
+.agent-text del{text-decoration:line-through;color:#4A5568}
+.agent-text a{color:#818CF8;text-decoration:none}
+.agent-text a:hover{text-decoration:underline}
+.agent-text hr{border:none;border-top:1px solid #0F1626;margin:16px 0}
+.agent-text ul,.agent-text ol{padding-left:20px;margin-bottom:10px}
+.agent-text li{margin-bottom:4px}
 
 /* Inline code */
-.agent-content code{
+.agent-text code{
   font-family:'Cascadia Code','Cascadia Mono',Consolas,monospace;
   font-size:12px;
   background:#0D1422;color:#E06C75;
@@ -157,7 +151,7 @@ html,body{
   background:#060A12;
   border:1px solid #141E30;
   border-radius:8px;
-  margin:14px 0;overflow:hidden;
+  margin:12px 0;overflow:hidden;
 }
 .code-header{
   display:flex;align-items:center;justify-content:space-between;
@@ -189,19 +183,19 @@ html,body{
 }
 
 /* ─── Reasoning section ──────────────────────────────────────────── */
-.reasoning-wrap{margin:8px 0}
+.reasoning-wrap{margin:4px 0}
 .reasoning-header{
-  display:flex;align-items:center;gap:5px;
-  padding:3px 0;cursor:pointer;user-select:none;
-  color:#2A3548;font-size:11px;
+  display:flex;align-items:center;gap:6px;
+  padding:4px 0;cursor:pointer;user-select:none;
+  color:#3A4A60;font-size:11px;
   transition:color .12s;
 }
-.reasoning-header:hover{color:#3A4A60}
+.reasoning-header:hover{color:#5A6B80}
 .r-caret{font-size:8px;transition:transform .15s;display:inline-block}
 .r-caret.open{transform:rotate(90deg)}
 .r-lbl{font-weight:500}
 .r-preview{
-  color:#1C2530;font-style:italic;font-size:11px;margin-left:4px;
+  color:#2A3548;font-style:italic;font-size:11px;margin-left:4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   flex:1;min-width:0;
 }
@@ -212,7 +206,7 @@ html,body{
   background:#08090E;
   border-left:2px solid #1A2A3A;
   border-radius:0 4px 4px 0;
-  font-size:12.5px;color:#3A4E62;
+  font-size:12.5px;color:#4A5E78;
   font-style:italic;line-height:1.65;
   white-space:pre-wrap;word-break:break-word;
   max-height:300px;overflow-y:auto;
@@ -224,35 +218,39 @@ html,body{
 }
 
 /* ─── Tool activity ──────────────────────────────────────────────── */
-.tool-wrap{margin:5px 0}
+.tool-wrap{margin:4px 0}
 .tool-header{
   display:flex;align-items:center;gap:6px;
-  padding:3px 0;cursor:pointer;user-select:none;
-  font-size:11px;color:#2A3548;
-  transition:color .12s;
+  padding:4px 8px;
+  background:#080B12;
+  border:1px solid #101926;
+  border-radius:6px;
+  cursor:pointer;user-select:none;
+  font-size:11.5px;color:#5A6B80;
+  transition:background .12s,border-color .12s;
 }
-.tool-header:hover{color:#3A4A60}
-.t-caret{font-size:8px;transition:transform .15s;display:inline-block}
+.tool-header:hover{background:#0C101A;border-color:#182538;color:#7A8CA0}
+.t-caret{font-size:8px;transition:transform .15s;display:inline-block;color:#3A4A60}
 .t-caret.open{transform:rotate(90deg)}
-.t-name{font-weight:500}
+.t-name{font-weight:500;color:#7A8CA0}
 .t-chip{
   margin-left:auto;font-size:10px;padding:1px 7px;
   border-radius:3px;font-weight:500;
 }
-.t-chip.running{color:#92712A;background:#110D00}
-.t-chip.done{color:#2A7A52;background:#001A0E}
-.t-chip.error{color:#7A3030;background:#1A0000}
+.t-chip.running{color:#D97706;background:#181000}
+.t-chip.done{color:#10B981;background:#001C10}
+.t-chip.error{color:#EF4444;background:#1C0000}
 .tool-body{
   display:none;
-  margin:3px 0 3px 10px;
-  padding:7px 12px;
-  background:#07080C;
-  border-left:2px solid #0F1A26;
-  border-radius:0 4px 4px 0;
+  margin:4px 0 4px 0;
+  padding:8px 12px;
+  background:#05070C;
+  border:1px solid #0F1724;
+  border-radius:6px;
   font-family:'Cascadia Code','Cascadia Mono',Consolas,monospace;
-  font-size:11px;color:#2A3A50;
+  font-size:11px;color:#5A6B80;
   white-space:pre-wrap;word-break:break-word;
-  max-height:160px;overflow-y:auto;
+  max-height:220px;overflow-y:auto;
 }
 .tool-body.open{display:block}
 
@@ -292,7 +290,13 @@ html,body{
 'use strict';
 
 // ─── State ─────────────────────────────────────────────────────────────────
-const S = { turns:{}, userScrolled:false };
+const S = {
+  turns: {},           // Map of partID -> part metadata
+  activeTurnEl: null,  // Current agent turn container element
+  lastUserPrompt: '',  // Last prompt text sent by user
+  userScrolled: false
+};
+
 const scroll = document.getElementById('scroll');
 const msgs   = document.getElementById('messages');
 const jmp    = document.getElementById('jmp');
@@ -324,6 +328,64 @@ function esc(s) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ─── Ensure Active Agent Turn Container ─────────────────────────────────────
+// Creates exactly ONE agent turn container with ONE badge per assistant response turn
+function getOrCreateActiveTurn() {
+  if (!S.activeTurnEl) {
+    const turn = document.createElement('div');
+    turn.className = 'agent-turn';
+    turn.innerHTML = `
+      <div class="agent-badge">
+        <div class="agent-dot">G</div>
+        <span class="agent-label">GAS</span>
+      </div>
+      <div class="turn-body"></div>`;
+    msgs.appendChild(turn);
+    S.activeTurnEl = turn.querySelector('.turn-body');
+  }
+  return S.activeTurnEl;
+}
+
+// ─── Tool Output Formatter ─────────────────────────────────────────────────
+function formatToolOutput(raw) {
+  if (!raw || !raw.trim()) return 'No output details';
+  const str = String(raw).trim();
+
+  // If raw XML from OpenCode tool (dir listing, read, etc.)
+  if (str.includes('<path>') || str.includes('<entries>') || str.includes('<content>')) {
+    let result = '';
+
+    const pathMatch = str.match(/<path>([\s\S]*?)<\/path>/i);
+    const typeMatch = str.match(/<type>([\s\S]*?)<\/type>/i);
+    const entriesMatch = str.match(/<entries>([\s\S]*?)<\/entries>/i);
+    const contentMatch = str.match(/<content>([\s\S]*?)<\/content>/i);
+
+    if (pathMatch) result += `Path: ${pathMatch[1].trim()}\n`;
+    if (typeMatch) result += `Type: ${typeMatch[1].trim()}\n`;
+
+    if (entriesMatch) {
+      const items = entriesMatch[1].trim().split(/\s+/).filter(Boolean);
+      result += `\nEntries (${items.length}):\n` + items.map(i => `  • ${i}`).join('\n');
+    } else if (contentMatch) {
+      result += `\nContent:\n${contentMatch[1].trim()}`;
+    } else {
+      // Fallback: strip XML tags cleanly
+      result += '\n' + str.replace(/<[^>]+>/g, '').trim();
+    }
+    return result;
+  }
+
+  // If raw JSON object/array
+  if ((str.startsWith('{') && str.endsWith('}')) || (str.startsWith('[') && str.endsWith(']'))) {
+    try {
+      const obj = JSON.parse(str);
+      return JSON.stringify(obj, null, 2);
+    } catch { }
+  }
+
+  return str;
+}
+
 // ─── Markdown parser ────────────────────────────────────────────────────────
 function md(raw) {
   if (!raw || !raw.trim()) return '';
@@ -334,7 +396,6 @@ function md(raw) {
     const line = lines[i];
     const t = line.trim();
 
-    // Fenced code block
     if (t.startsWith('```')) {
       const lang = esc(t.slice(3).trim());
       const code = [];
@@ -349,15 +410,12 @@ function md(raw) {
       continue;
     }
 
-    // Headings
     if (t.startsWith('### ')) { out += `<h3>${inl(t.slice(4))}</h3>`; i++; continue; }
     if (t.startsWith('## '))  { out += `<h2>${inl(t.slice(3))}</h2>`; i++; continue; }
     if (t.startsWith('# '))   { out += `<h1>${inl(t.slice(2))}</h1>`; i++; continue; }
 
-    // HR
     if (/^(-{3,}|_{3,}|\*{3,})$/.test(t)) { out += '<hr>'; i++; continue; }
 
-    // Unordered list
     if (/^[-*•]\s/.test(t)) {
       const items = [];
       while (i < lines.length && /^[-*•]\s/.test(lines[i].trim())) {
@@ -368,7 +426,6 @@ function md(raw) {
       continue;
     }
 
-    // Ordered list
     if (/^\d+[.)]\s/.test(t)) {
       const items = [];
       while (i < lines.length && /^\d+[.)]\s/.test(lines[i].trim())) {
@@ -379,10 +436,8 @@ function md(raw) {
       continue;
     }
 
-    // Blank line
     if (!t) { i++; continue; }
 
-    // Paragraph — collect consecutive non-special lines
     const para = [];
     while (i < lines.length) {
       const lt = lines[i].trim();
@@ -398,7 +453,6 @@ function md(raw) {
   return out || `<p>${inl(raw)}</p>`;
 }
 
-// Inline markdown (operates on already-escaped HTML isn't right — we escape first)
 function inl(raw) {
   return esc(raw)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -410,7 +464,6 @@ function inl(raw) {
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
 }
 
-// ─── Copy code button ────────────────────────────────────────────────────────
 function copyCode(btn) {
   const code = btn.closest('.code-block').querySelector('pre code');
   navigator.clipboard.writeText(code.textContent).then(() => {
@@ -419,7 +472,6 @@ function copyCode(btn) {
   });
 }
 
-// ─── Reasoning helpers ───────────────────────────────────────────────────────
 function toggleReasoning(hdr) {
   const wrap  = hdr.closest('.reasoning-wrap');
   const body  = wrap.querySelector('.reasoning-body');
@@ -430,7 +482,6 @@ function toggleReasoning(hdr) {
   if (prev) prev.style.display = open ? 'none' : '';
 }
 
-// ─── Tool helpers ─────────────────────────────────────────────────────────────
 function toggleTool(hdr) {
   const wrap  = hdr.closest('.tool-wrap');
   const body  = wrap.querySelector('.tool-body');
@@ -480,6 +531,8 @@ window.gasAPI = {
       <p>Use the hotkey or command bar<br>to ask GAS anything.</p>
     </div>`;
     S.turns = {};
+    S.activeTurnEl = null;
+    S.lastUserPrompt = '';
     S.userScrolled = false;
     jmp.classList.remove('show');
   },
@@ -488,6 +541,9 @@ window.gasAPI = {
   addUserMessage(jsonStr) {
     const {text, timestamp} = JSON.parse(jsonStr);
     hideEmpty();
+    S.activeTurnEl = null; // Reset active turn so next agent response gets a fresh turn
+    S.lastUserPrompt = (text||'').trim();
+
     if (timestamp) {
       const ts = document.createElement('div');
       ts.className = 'ts';
@@ -501,23 +557,19 @@ window.gasAPI = {
     scrollToBottom(true);
   },
 
-  // ── Agent text ────────────────────────────────────────────────────────────
+  // ── Agent part streaming ─────────────────────────────────────────────────
   onPartDelta(jsonStr) {
     const {partID, delta, type} = JSON.parse(jsonStr);
     hideEmpty();
 
     if (!S.turns[partID]) {
+      const turnBody = getOrCreateActiveTurn();
+
       if (type === 'text') {
-        const row = document.createElement('div');
-        row.className = 'agent-row';
-        row.innerHTML = `
-          <div class="agent-badge">
-            <div class="agent-dot">G</div>
-            <span class="agent-label">GAS</span>
-          </div>
-          <div class="agent-content streaming"></div>`;
-        msgs.appendChild(row);
-        S.turns[partID] = {type:'text', el:row, content:row.querySelector('.agent-content'), raw:''};
+        const textEl = document.createElement('div');
+        textEl.className = 'agent-text streaming';
+        turnBody.appendChild(textEl);
+        S.turns[partID] = {type:'text', content:textEl, raw:''};
 
       } else if (type === 'reasoning') {
         const wrap = document.createElement('div');
@@ -529,7 +581,7 @@ window.gasAPI = {
             <span class="r-preview" style="display:none"></span>
           </div>
           <div class="reasoning-body open streaming"></div>`;
-        msgs.appendChild(wrap);
+        turnBody.appendChild(wrap);
         S.turns[partID] = {type:'reasoning', el:wrap, content:wrap.querySelector('.reasoning-body'), preview:wrap.querySelector('.r-preview'), raw:''};
       }
     }
@@ -537,30 +589,49 @@ window.gasAPI = {
     const t = S.turns[partID];
     if (!t || !t.content) return;
     t.raw += delta;
+
+    // Filter prompt echoes in initial text part
+    if (t.type === 'text' && S.lastUserPrompt && (t.raw.trim() === S.lastUserPrompt || S.lastUserPrompt.startsWith(t.raw.trim()))) {
+      // Prompt echo detected — don't display prompt echo text
+      t.content.style.display = 'none';
+      return;
+    }
+
+    if (t.content.style.display === 'none') {
+      t.content.style.display = '';
+    }
+
     t.content.textContent = t.raw;
     scrollToBottom();
   },
 
-  // ── Finalize / replay ─────────────────────────────────────────────────────
+  // ── Finalize / replay part ───────────────────────────────────────────────
   onPartUpdated(jsonStr) {
     const {partID, type, text} = JSON.parse(jsonStr);
     hideEmpty();
 
+    // Ignore prompt echo text parts entirely
+    if (type === 'text' && S.lastUserPrompt && text && (text.trim() === S.lastUserPrompt || S.lastUserPrompt.startsWith(text.trim()))) {
+      if (S.turns[partID] && S.turns[partID].content) {
+        S.turns[partID].content.remove();
+        delete S.turns[partID];
+      }
+      return;
+    }
+
     if (!S.turns[partID]) {
-      // Replay (loading history) — create and immediately render
+      const turnBody = getOrCreateActiveTurn();
+
       if (type === 'text') {
-        const row = document.createElement('div');
-        row.className = 'agent-row';
-        row.innerHTML = `
-          <div class="agent-badge">
-            <div class="agent-dot">G</div>
-            <span class="agent-label">GAS</span>
-          </div>
-          <div class="agent-content">${md(text)}</div>`;
-        msgs.appendChild(row);
-        S.turns[partID] = {type:'text', el:row, raw:text};
+        if (!text || !text.trim()) return;
+        const textEl = document.createElement('div');
+        textEl.className = 'agent-text';
+        textEl.innerHTML = md(text);
+        turnBody.appendChild(textEl);
+        S.turns[partID] = {type:'text', content:textEl, raw:text};
       } else if (type === 'reasoning') {
-        const first = (text||'').split('\n').find(l=>l.trim())||'';
+        if (!text || !text.trim()) return;
+        const first = text.split('\n').find(l=>l.trim())||'';
         const prev  = first.length > 80 ? first.slice(0,80)+'…' : first;
         const wrap  = document.createElement('div');
         wrap.className = 'reasoning-wrap';
@@ -571,7 +642,7 @@ window.gasAPI = {
             <span class="r-preview">· ${esc(prev)}</span>
           </div>
           <div class="reasoning-body">${esc(text)}</div>`;
-        msgs.appendChild(wrap);
+        turnBody.appendChild(wrap);
         S.turns[partID] = {type:'reasoning', el:wrap, raw:text};
       }
       scrollToBottom();
@@ -582,8 +653,14 @@ window.gasAPI = {
     t.raw = text;
 
     if (type === 'text' && t.content) {
-      t.content.classList.remove('streaming');
-      t.content.innerHTML = md(text);
+      if (!text || !text.trim()) {
+        t.content.remove();
+        delete S.turns[partID];
+      } else {
+        t.content.style.display = '';
+        t.content.classList.remove('streaming');
+        t.content.innerHTML = md(text);
+      }
 
     } else if (type === 'reasoning' && t.content) {
       const body  = t.content;
@@ -609,23 +686,24 @@ window.gasAPI = {
 
     if (S.turns[id]) { this.updateTool(jsonStr); return; }
 
-    const meta   = toolMeta(name);
-    const detail = (output||input||'Executing…').slice(0,500);
-    const sc     = statusClass(status);
-    const sl     = statusLabel(status);
+    const turnBody = getOrCreateActiveTurn();
+    const meta     = toolMeta(name);
+    const formatted = formatToolOutput(output || input);
+    const sc       = statusClass(status);
+    const sl       = statusLabel(status);
 
     const wrap = document.createElement('div');
     wrap.className = 'tool-wrap';
     wrap.dataset.toolId = id;
     wrap.innerHTML = `
       <div class="tool-header" onclick="toggleTool(this)">
+        <span class="t-caret">▶</span>
         <span>${meta.icon}</span>
         <span class="t-name">${esc(meta.label)}</span>
         <span class="t-chip ${sc}">${sl}</span>
-        <span class="t-caret">▶</span>
       </div>
-      <div class="tool-body">${esc(detail)}</div>`;
-    msgs.appendChild(wrap);
+      <div class="tool-body">${esc(formatted)}</div>`;
+    turnBody.appendChild(wrap);
     S.turns[id] = {type:'tool', el:wrap};
     scrollToBottom();
   },
@@ -642,8 +720,8 @@ window.gasAPI = {
 
     if (chip) { chip.className = `t-chip ${sc}`; chip.textContent = sl; }
     if (body) {
-      const d = (output||input||body.textContent||'').slice(0,500);
-      if (d) body.textContent = d;
+      const formatted = formatToolOutput(output || input || body.textContent);
+      body.textContent = formatted;
     }
   }
 };
