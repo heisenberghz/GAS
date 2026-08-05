@@ -1,6 +1,6 @@
 # GAS (Global Agent Service)
 
-GAS is a lightweight, keyboard-first native Windows desktop companion for [OpenCode](https://github.com/anomalyco/opencode). It runs AI coding agents entirely in the background, monitoring their execution from the System Tray and only prompting you with native interactive alerts when authorization (file edits, terminal commands, or browser actions) is required. 
+GAS is a lightweight, keyboard-first native Windows desktop companion for [OpenCode](https://github.com/anomalyco/opencode). It runs AI coding agents entirely in the background, monitoring their execution from the System Tray and only prompting you with native interactive alerts when authorization (file edits, terminal commands, or browser actions) is required.
 
 This lets you delegate complex development tasks, walk away from your editor, and stay productive elsewhere without having to babysit the agent.
 
@@ -14,7 +14,7 @@ This lets you delegate complex development tasks, walk away from your editor, an
 5. [Prerequisites](#prerequisites)
 6. [Getting Started](#getting-started)
 7. [Configuration & Customization](#configuration--customization)
-8. [License & Acknowledgments](#license--acknowledgments)
+8. [Acknowledgments](#acknowledgments)
 
 ---
 
@@ -25,7 +25,7 @@ Autonomous AI coding agents are highly capable, but they frequently require user
 **GAS changes this paradigm:**
 * **System Tray Resident:** The agent runs quietly in the Windows notification area. The tray icon dynamically changes colors to show state (Idle, Thinking, Executing, Waiting, Error).
 * **Native OS Interrupts:** When the agent needs permission or asks a question, GAS displays a native notification and popup. You approve or reject, and the agent continues.
-* **Workspace-Aware:** Press `Ctrl + Shift + Space` anywhere. GAS auto-detects the project you are working on (whether active in VS Code, Visual Studio, or a focused File Explorer directory) and runs the agent there.
+* **Universal Context-Aware:** Press `Ctrl + Shift + Space` anywhere. GAS auto-detects your active window context—whether you are working in VS Code, Antigravity IDE, Cursor, Windsurf, JetBrains Rider, Visual Studio, Windows Terminal, Git Bash, File Explorer, or a desktop AI app like ChatGPT.
 
 ---
 
@@ -38,7 +38,8 @@ sequenceDiagram
     autonumber
     actor User
     participant App as GAS (WPF Client)
-    participant WD as Workspace Detector
+    participant CD as Context Detector
+    participant State as Conversation State Machine
     participant Server as OpenCode Server (Local Node)
     
     User->>App: Press Ctrl+Shift+Space (Hotkey)
@@ -46,13 +47,13 @@ sequenceDiagram
     App->>User: Display Command Bar UI
     User->>App: Input task (e.g. "Run unit tests") & hit Enter
     
-    App->>WD: Get active folder for captured HWND
-    WD-->>App: Return detected path (e.g., D:\Projects\MyAPI)
+    App->>CD: Detect app & workspace for captured HWND
+    CD-->>App: Return ContextInfo (App, Path, ProjectName)
     
-    Note over App: Check if Server is running in D:\Projects\MyAPI
+    Note over App: Check if Server is running in target workspace
     alt Directory mismatch / not running
-        App->>Server: Kill old process & Start in D:\Projects\MyAPI
-        Server-->>App: Port Detected (Connected)
+        App->>Server: Restart Server in target workspace
+        Server-->>App: Connected (Port Ready)
     end
     
     App->>Server: HTTP POST /session/new (Create Session)
@@ -61,7 +62,9 @@ sequenceDiagram
     
     par Live Streaming UI Updates
         Server-->>App: SSE Events (/event) (thoughts, tool runs, text)
-        App->>User: Display live updates in activities Drawer
+        App->>State: Process SSE Event (Deltas, Updates)
+        Note over State: Suppress echoes & normalize tool XML
+        State->>App: Dispatch normalized payload to WebView2
     and Permission Approvals
         Server->>App: SSE Event: permission.asked
         App->>User: Display native Approval Dialog (Approve / Reject)
@@ -77,16 +80,18 @@ sequenceDiagram
 The GAS workspace is split into two main logical projects to ensure clean separation of concern and facilitate potential CLI integrations:
 
 ### 1. `GAS.Core` (Class Library)
-* **`WorkspaceDetector`**: Uses P/Invoke and Windows Win32 APIs (`GetForegroundWindow`, `GetWindowThreadProcessId`) alongside COM interface queries (`Shell.Application`) to dynamically trace the folder active in the focused VS Code editor, Visual Studio IDE, or File Explorer window.
-* **`OpenCodeServer`**: Orchestrates the local Node.js process hosting the OpenCode server (`opencode serve`). Binds the process under a Windows native **Job Object** to guarantee that the server and all orphaned child tools (e.g. headless browsers, compiler runs) terminate cleanly when GAS exits.
-* **`OpenCodeClient`**: A lightweight REST and Server-Sent Events (SSE) client wrapper that handles the communications protocol with the server.
+* **`ContextDetector`**: A universal context detection engine inspired by Motive. Inspects active process, window title, command line, shell CWD, and COM interfaces across IDEs (VS Code, Antigravity IDE, Cursor, Windsurf, JetBrains, Visual Studio), terminals (Windows Terminal, PowerShell, CMD, Git Bash), file managers, and desktop AI apps (ChatGPT, Claude).
+* **`ConversationState`**: A strongly-typed conversation state machine that manages turn lifecycles, suppresses prompt echoes, normalizes tool outputs (XML/JSON), and dispatches clean UI payloads.
+* **`OpenCodeServer`**: Orchestrates the local Node.js process hosting the OpenCode server (`opencode serve`). Binds the process under a Windows native **Job Object** to guarantee that the server and all orphaned child tools terminate cleanly when GAS exits.
+* **`OpenCodeClient`**: A REST and Server-Sent Events (SSE) client wrapper that handles streaming protocols with the server.
 * **`GASDbContext`**: Local SQLite database backed by Entity Framework Core to record execution logs and conversational histories.
-* **`CredentialStore`**: Manages DPAPI-secured encryption of keys (Anthropic, OpenAI, Gemini) inside the local app data folder.
+* **`CredentialStore`**: Manages DPAPI-secured encryption of keys (Anthropic, OpenAI, Gemini, OpenRouter, Ollama, Zen).
 
 ### 2. `GAS.App` (WPF Desktop Application)
 * **`CommandBarWindow`**: A spotlight-like overlay window invoked via global hotkey (`Ctrl + Shift + Space`) allowing fast, mouse-free task submission.
-* **`DrawerWindow`**: An activities drawer docked to the right edge of the screen displaying real-time reasoning thoughts, executed tools (Git, compiler, filesystem, browser), and conversational bubbles. **Every text entry and terminal logs inside the drawer is fully selectable and copyable.**
+* **`DrawerWindow`**: An activities drawer docked to the right edge of the screen featuring an embedded **WebView2 continuous document renderer**. Supports smooth streaming, cross-turn text selection, copy buttons on code blocks, blinking streaming cursor, and collapsible tool/reasoning cards.
 * **`ApprovalWindow`**: An OS-level interrupt dialog showing command arguments, files changed, or browser interactions, prompting the user for approval.
+* **`PostBuildSign`**: Built-in MSBuild target in `GAS.App.csproj` that automatically signs the output executable after every build for seamless compatibility with Windows Application Control (WDAC / AppLocker).
 
 ---
 
@@ -120,7 +125,7 @@ Supports customizable execution guardrails:
 ## Prerequisites
 
 To build and run GAS, you must have the following dependencies configured on your Windows machine:
-1. **Windows 10 / 11** (uses Windows Win32 APIs and DPAPI).
+1. **Windows 10 / 11** (uses Windows Win32 APIs, WebView2, and DPAPI).
 2. **.NET 8.0 SDK** (to build the solution).
 3. **Node.js** (required to host the underlying OpenCode server).
 
@@ -163,7 +168,6 @@ You can customize:
 
 ---
 
-## License & Acknowledgments
+## Acknowledgments
 
-* Distributed under the **MIT License**. See `LICENSE` for details.
 * Powered by [OpenCode](https://github.com/anomalyco/opencode) — the open-source agent engine.
