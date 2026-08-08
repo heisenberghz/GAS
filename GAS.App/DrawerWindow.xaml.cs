@@ -244,7 +244,7 @@ namespace GAS.App
                 var session = db.Sessions.Find(localSessionId);
                 if (session == null) return;
 
-                _conversationState.AddUserTurn(session.Intent);
+                _conversationState.AddUserTurn(session.Intent, session.CreatedAt.ToLocalTime().ToString("h:mm tt"));
 
                 var logs = db.LogEntries
                              .Where(l => l.SessionId == session.Id)
@@ -396,7 +396,7 @@ namespace GAS.App
                         Id                = s.Id.ToString(),
                         OpenCodeSessionId = s.OpenCodeSessionId,
                         Intent            = s.Intent,
-                        DateStr           = s.CreatedAt.ToString("MMM dd, h:mm tt"),
+                        DateStr           = s.CreatedAt.ToLocalTime().ToString("MMM dd, h:mm tt"),
                         Icon              = s.Status == SessionStatus.Completed
                                                 ? Wpf.Ui.Controls.SymbolRegular.CheckmarkCircle24
                                                 : Wpf.Ui.Controls.SymbolRegular.Record24,
