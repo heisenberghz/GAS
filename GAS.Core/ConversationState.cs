@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+using System.Text.Json.Serialization;
+
 namespace GAS.Core
 {
     // ─────────────────────────────────────────────────────────────
@@ -12,26 +14,49 @@ namespace GAS.Core
 
     public class UserTurnPayload
     {
+        [JsonPropertyName("text")]
         public string Text { get; set; } = string.Empty;
+
+        [JsonPropertyName("timestamp")]
         public string Timestamp { get; set; } = string.Empty;
     }
 
     public class TextPartPayload
     {
+        [JsonPropertyName("partID")]
         public string PartID { get; set; } = string.Empty;
+
+        [JsonPropertyName("delta")]
         public string Delta { get; set; } = string.Empty;
+
+        [JsonPropertyName("fullText")]
         public string FullText { get; set; } = string.Empty;
+
+        [JsonPropertyName("isReasoning")]
         public bool IsReasoning { get; set; }
+
+        [JsonPropertyName("isFinalized")]
         public bool IsFinalized { get; set; }
     }
 
     public class ToolPartPayload
     {
+        [JsonPropertyName("toolID")]
         public string ToolID { get; set; } = string.Empty;
+
+        [JsonPropertyName("toolName")]
         public string ToolName { get; set; } = string.Empty;
+
+        [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("displayLabel")]
         public string DisplayLabel { get; set; } = string.Empty;
+
+        [JsonPropertyName("icon")]
         public string Icon { get; set; } = "⚙️";
+
+        [JsonPropertyName("formattedOutput")]
         public string FormattedOutput { get; set; } = string.Empty;
     }
 

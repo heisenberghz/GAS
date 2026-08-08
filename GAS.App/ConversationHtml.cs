@@ -11,9 +11,14 @@ namespace GAS.App
     {
         public static string GetHtml() => HtmlContent;
 
+        private static readonly JsonSerializerOptions CamelCaseOpts = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
         public static string BuildCall(string method, object payload)
         {
-            var json = JsonSerializer.Serialize(payload);
+            var json = JsonSerializer.Serialize(payload, CamelCaseOpts);
             var jsLiteral = JsonSerializer.Serialize(json);
             return $"window.{method}({jsLiteral})";
         }
@@ -479,7 +484,9 @@ window.gasAPI = {
   },
 
   addUserTurn(jsonStr) {
-    const {text, timestamp} = JSON.parse(jsonStr);
+    const data = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : (jsonStr || {});
+    const text = data.text || data.Text || '';
+    const timestamp = data.timestamp || data.Timestamp || '';
     hideEmpty();
     S.activeTurnEl = null;
 
