@@ -415,7 +415,17 @@ namespace GAS.App
                         }
                     });
 
-                    // 4. Send prompt to background engine (only pass model/provider overrides if explicitly selected)
+                    // 4. Construct context-injected prompt for OpenCode server (keeps UI turn clean)
+                    var contextPrompt = $"""
+[System Context]
+Active Application: {context.AppName}
+Workspace Directory: {_workspacePath}
+Detection Method: {context.DetectionMethod}
+
+User Request:
+{prompt}
+""";
+
                     string? modelOverride = null;
                     string? providerOverride = null;
                     var selectedProv = settings.SelectedProvider ?? "Auto";
@@ -427,7 +437,7 @@ namespace GAS.App
 
                     await _openCodeClient.SendPromptAsync(
                         sessionId,
-                        prompt,
+                        contextPrompt,
                         _workspacePath,
                         model: modelOverride,
                         modelProviderID: providerOverride
