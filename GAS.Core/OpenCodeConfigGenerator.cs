@@ -34,8 +34,15 @@ namespace GAS.Core
 
             var configPath = Path.Combine(configDir, "opencode.json");
 
-            // Skill permissions: deny all by default, allow enabled skills
+            // 1. Run Skill & MCP Auto-Discovery
+            var discoveryResult = Skills.SkillDiscoveryEngine.Discover(baseDir);
+
+            // Skill permissions: deny all by default, allow discovered & explicitly enabled skills
             var skillPermissions = new Dictionary<string, string> { ["*"] = "deny" };
+            foreach (var skill in discoveryResult.DiscoveredSkillNames)
+            {
+                skillPermissions[skill] = "allow";
+            }
             foreach (var skill in inputs.EnabledSkills)
             {
                 skillPermissions[skill] = "allow";
@@ -80,6 +87,11 @@ namespace GAS.Core
                 ["permission"] = permissions,
                 ["agent"] = agentDict
             };
+
+            if (discoveryResult.McpServers.Count > 0)
+            {
+                config["mcp"] = discoveryResult.McpServers;
+            }
 
             if (!string.IsNullOrWhiteSpace(inputs.ProviderName) && !inputs.ProviderName.Equals("auto", StringComparison.OrdinalIgnoreCase))
             {
