@@ -50,12 +50,17 @@ namespace GAS.Core
             var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
 
             var pathAdditions = new[]
             {
                 Path.Combine(programFiles, "nodejs"),
                 Path.Combine(appData, "npm"),
                 Path.Combine(userProfile, ".dotnet"),
+                Path.Combine(programFiles, "Git", "cmd"),
+                Path.Combine(programFiles, "Git", "bin"),
+                Path.Combine(programFilesX86, "Git", "cmd"),
+                Path.Combine(userProfile, "AppData", "Local", "Programs", "Git", "cmd"),
                 Path.Combine(userProfile, "AppData", "Local", "Programs", "Python", "Python311"),
                 Path.Combine(userProfile, "AppData", "Local", "Programs", "Python", "Python312")
             };
