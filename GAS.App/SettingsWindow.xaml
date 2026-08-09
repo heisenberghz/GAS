@@ -112,16 +112,18 @@
                                    FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,15"/>
 
                         <TextBlock Text="Active Provider Override" FontSize="12" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,5"/>
-                        <TextBlock Text="Default is Automatic (Use OpenCode CLI Configuration). Select a provider only to override OpenCode defaults:" 
+                        <TextBlock Text="Default is Automatic (Use OpenCode CLI Configuration). Search and select a provider below to override defaults:" 
                                    FontSize="11" Foreground="#8A8A8A" TextWrapping="Wrap" Margin="0,0,0,8"/>
-                        <ComboBox x:Name="ProviderComboBox" Width="280" HorizontalAlignment="Left" Height="32" Margin="0,0,0,15">
-                            <ComboBoxItem Content="Auto (Use OpenCode Config)" Tag="Auto"/>
-                            <ComboBoxItem Content="Anthropic (Claude)" Tag="Anthropic"/>
-                            <ComboBoxItem Content="OpenAI (GPT-4o)" Tag="OpenAI"/>
-                            <ComboBoxItem Content="Google Gemini" Tag="Gemini"/>
-                            <ComboBoxItem Content="OpenRouter" Tag="OpenRouter"/>
-                            <ComboBoxItem Content="Ollama (Local)" Tag="Ollama"/>
-                        </ComboBox>
+                        
+                        <ui:TextBox x:Name="ProviderSearchTextBox" 
+                                    PlaceholderText="Search 18+ providers (e.g. Claude, GPT-4o, DeepSeek, Ollama)..." 
+                                    Width="320" 
+                                    HorizontalAlignment="Left" 
+                                    Height="32" 
+                                    Margin="0,0,0,6"
+                                    TextChanged="ProviderSearchTextBox_TextChanged"/>
+
+                        <ComboBox x:Name="ProviderComboBox" Width="320" HorizontalAlignment="Left" Height="32" Margin="0,0,0,15"/>
 
                         <Separator Background="#2D2D2D" Height="1" Margin="0,5,0,15"/>
 

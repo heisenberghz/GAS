@@ -30,6 +30,65 @@ namespace GAS.App
             LoadCurrentSettings();
         }
 
+        private static readonly (string DisplayName, string Tag)[] AllProviders = new[]
+        {
+            ("Auto (Use OpenCode Config)", "Auto"),
+            ("Anthropic (Claude)", "Anthropic"),
+            ("OpenAI (GPT-4o)", "OpenAI"),
+            ("Google Gemini", "Gemini"),
+            ("DeepSeek", "DeepSeek"),
+            ("Groq", "Groq"),
+            ("Mistral AI", "Mistral"),
+            ("xAI (Grok)", "xAI"),
+            ("Cohere", "Cohere"),
+            ("DeepInfra", "DeepInfra"),
+            ("MiniMax", "MiniMax"),
+            ("Alibaba (Qwen)", "Alibaba"),
+            ("Moonshot (Kimi)", "Moonshot"),
+            ("Zhipu (GLM)", "Zhipu"),
+            ("Perplexity", "Perplexity"),
+            ("Amazon Bedrock", "Bedrock"),
+            ("LM Studio (Local)", "LMStudio"),
+            ("Ollama (Local)", "Ollama"),
+            ("Zen AI", "Zen"),
+            ("OpenRouter", "OpenRouter")
+        };
+
+        private void PopulateProviderList(string filter = "", string? selectedTag = null)
+        {
+            selectedTag ??= ((ComboBoxItem)ProviderComboBox.SelectedItem)?.Tag?.ToString();
+            ProviderComboBox.Items.Clear();
+
+            string cleanFilter = (filter ?? "").Trim().ToLowerInvariant();
+            foreach (var (displayName, tag) in AllProviders)
+            {
+                // Always include "Auto" at top, or match filter
+                if (tag.Equals("Auto", StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrEmpty(cleanFilter) ||
+                    displayName.ToLowerInvariant().Contains(cleanFilter) ||
+                    tag.ToLowerInvariant().Contains(cleanFilter))
+                {
+                    var item = new ComboBoxItem { Content = displayName, Tag = tag };
+                    ProviderComboBox.Items.Add(item);
+
+                    if (!string.IsNullOrEmpty(selectedTag) && tag.Equals(selectedTag, StringComparison.OrdinalIgnoreCase))
+                    {
+                        ProviderComboBox.SelectedItem = item;
+                    }
+                }
+            }
+
+            if (ProviderComboBox.SelectedItem == null && ProviderComboBox.Items.Count > 0)
+            {
+                ProviderComboBox.SelectedIndex = 0;
+            }
+        }
+
+        private void ProviderSearchTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            PopulateProviderList(ProviderSearchTextBox.Text);
+        }
+
         private void LoadCurrentSettings()
         {
             try
@@ -102,22 +161,8 @@ namespace GAS.App
                     ThemeComboBox.SelectedIndex = 0; // Default to Dark
                 }
 
-                // Map Provider ComboBox
-                bool foundProvider = false;
-                foreach (ComboBoxItem item in ProviderComboBox.Items)
-                {
-                    var tag = item.Tag?.ToString() ?? item.Content?.ToString();
-                    if (tag == settings.SelectedProvider || item.Content?.ToString() == settings.SelectedProvider)
-                    {
-                        ProviderComboBox.SelectedItem = item;
-                        foundProvider = true;
-                        break;
-                    }
-                }
-                if (!foundProvider && ProviderComboBox.Items.Count > 0)
-                {
-                    ProviderComboBox.SelectedIndex = 0; // Default to Auto
-                }
+                // Populate and Map Provider ComboBox
+                PopulateProviderList("", settings.SelectedProvider);
             }
             catch (Exception ex)
             {
