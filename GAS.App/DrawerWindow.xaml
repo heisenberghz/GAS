@@ -283,14 +283,38 @@
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- Elapsed time -->
-                        <TextBlock Grid.Column="2"
-                                   x:Name="ElapsedLabel"
-                                   Text=""
-                                   FontSize="10"
-                                   Foreground="#1E293B"
-                                   Visibility="Collapsed"
-                                   VerticalAlignment="Center"/>
+                        <!-- Token & Cost Pill and Elapsed time -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="TokenCostPill"
+                                    Background="#12121A"
+                                    BorderBrush="#1E1E2C"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="6,2"
+                                    Margin="0,0,8,0"
+                                    Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="TokenCountLabel"
+                                               Text="0 tok"
+                                               FontSize="10"
+                                               Foreground="#818CF8"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock Text="·" FontSize="10" Foreground="#334155" Margin="4,0"/>
+                                    <TextBlock x:Name="CostLabel"
+                                               Text="$0.00"
+                                               FontSize="10"
+                                               Foreground="#10B981"
+                                               FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock x:Name="ElapsedLabel"
+                                       Text=""
+                                       FontSize="10"
+                                       Foreground="#64748B"
+                                       Visibility="Collapsed"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 

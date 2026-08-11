@@ -77,6 +77,7 @@ namespace GAS.App
             _conversationState.OnConversationCleared += () =>
             {
                 JSRaw("window.gasAPI.clearConversation()");
+                Dispatcher.Invoke(() => TokenCostPill.Visibility = Visibility.Collapsed);
             };
 
             _conversationState.OnUserTurnAdded += (userTurn) =>
@@ -102,6 +103,18 @@ namespace GAS.App
             {
                 JS("gasAPI.updateToolPart", toolPart);
                 SaveLog($"tool:{toolPart.ToolName}:{toolPart.Status}", toolPart.FormattedOutput);
+            };
+
+            _conversationState.OnTokenUsageUpdated += (tokenUsage) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    TokenCostPill.Visibility = Visibility.Visible;
+                    TokenCountLabel.Text = tokenUsage.TotalTokens >= 1000
+                        ? $"{tokenUsage.TotalTokens / 1000.0:F1}k tok"
+                        : $"{tokenUsage.TotalTokens} tok";
+                    CostLabel.Text = $"${tokenUsage.EstimatedCostUsd:F4}";
+                });
             };
         }
 

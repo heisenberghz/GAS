@@ -60,6 +60,21 @@ namespace GAS.Core
         public string FormattedOutput { get; set; } = string.Empty;
     }
 
+    public class TokenUsagePayload
+    {
+        [JsonPropertyName("promptTokens")]
+        public int PromptTokens { get; set; }
+
+        [JsonPropertyName("completionTokens")]
+        public int CompletionTokens { get; set; }
+
+        [JsonPropertyName("totalTokens")]
+        public int TotalTokens { get; set; }
+
+        [JsonPropertyName("estimatedCostUsd")]
+        public double EstimatedCostUsd { get; set; }
+    }
+
     // ─────────────────────────────────────────────────────────────
     //  Conversation State Machine
     // ─────────────────────────────────────────────────────────────
@@ -75,6 +90,7 @@ namespace GAS.Core
         public event Action? OnAgentTurnStarted;
         public event Action<TextPartPayload>? OnTextPartUpdated;
         public event Action<ToolPartPayload>? OnToolPartUpdated;
+        public event Action<TokenUsagePayload>? OnTokenUsageUpdated;
         public event Action? OnConversationCleared;
 
         // ── Active State ─────────────────────────────────────────────
@@ -115,6 +131,8 @@ namespace GAS.Core
         {
             if (ev == null) return;
 
+            TryExtractTokenUsage(ev.properties);
+
             switch (ev.type)
             {
                 case "message.part.delta":
@@ -137,6 +155,51 @@ namespace GAS.Core
                     });
                     break;
             }
+        }
+
+        private void TryExtractTokenUsage(JsonElement props)
+        {
+            try
+            {
+                int promptTokens = 0, completionTokens = 0, totalTokens = 0;
+                double cost = 0.0;
+
+                if (props.TryGetProperty("tokens", out var tok))
+                {
+                    if (tok.TryGetProperty("input", out var inpTok)) promptTokens = inpTok.GetInt32();
+                    if (tok.TryGetProperty("output", out var outTok)) completionTokens = outTok.GetInt32();
+                    if (tok.TryGetProperty("total", out var totTok)) totalTokens = totTok.GetInt32();
+                }
+                else if (props.TryGetProperty("usage", out var usage))
+                {
+                    if (usage.TryGetProperty("prompt_tokens", out var pt)) promptTokens = pt.GetInt32();
+                    if (usage.TryGetProperty("completion_tokens", out var ct)) completionTokens = ct.GetInt32();
+                    if (usage.TryGetProperty("total_tokens", out var tt)) totalTokens = tt.GetInt32();
+                }
+
+                if (totalTokens == 0) totalTokens = promptTokens + completionTokens;
+
+                if (props.TryGetProperty("cost", out var costEl) && costEl.ValueKind == JsonValueKind.Number)
+                {
+                    cost = costEl.GetDouble();
+                }
+                else if (totalTokens > 0)
+                {
+                    cost = Math.Round((totalTokens / 1000.0) * 0.003, 4);
+                }
+
+                if (totalTokens > 0)
+                {
+                    OnTokenUsageUpdated?.Invoke(new TokenUsagePayload
+                    {
+                        PromptTokens = promptTokens,
+                        CompletionTokens = completionTokens,
+                        TotalTokens = totalTokens,
+                        EstimatedCostUsd = cost
+                    });
+                }
+            }
+            catch { /* Ignore non-token payload variations */ }
         }
 
         private void EnsureAgentTurnStarted()
