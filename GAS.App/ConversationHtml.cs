@@ -255,9 +255,58 @@ html,body{
   font-family:'Cascadia Code','Cascadia Mono',Consolas,monospace;
   font-size:11px;color:#5A6B80;
   white-space:pre-wrap;word-break:break-word;
-  max-height:220px;overflow-y:auto;
+  max-height:260px;overflow-y:auto;
 }
 .tool-body.open{display:block}
+
+/* ─── Diff Card Styling ─────────────────────────────────────────── */
+.diff-card{
+  background:#04060A;
+  border:1px solid #111A28;
+  border-radius:6px;
+  overflow:hidden;
+  font-family:'Cascadia Code','Cascadia Mono',Consolas,monospace;
+  font-size:11.5px;
+  line-height:1.6;
+  margin:2px 0;
+}
+.diff-header{
+  background:#090E17;
+  padding:6px 12px;
+  font-size:11px;
+  font-weight:600;
+  color:#94A3B8;
+  border-bottom:1px solid #111A28;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.diff-body{
+  padding:4px 0;
+  overflow-x:auto;
+  max-height:300px;
+}
+.diff-line{
+  padding:1px 12px;
+  white-space:pre-wrap;
+  word-break:break-all;
+}
+.diff-line.add{
+  background:rgba(16, 185, 129, 0.14);
+  color:#34D399;
+}
+.diff-line.del{
+  background:rgba(239, 68, 68, 0.14);
+  color:#F87171;
+}
+.diff-line.hunk{
+  background:rgba(99, 102, 241, 0.14);
+  color:#818CF8;
+  font-weight:500;
+}
+.diff-line.ctx{
+  color:#64748B;
+}
 
 /* ─── Jump to bottom FAB ─────────────────────────────────────────── */
 #jmp{
@@ -466,6 +515,34 @@ function statusLabel(s) {
   return '⋯ Running';
 }
 
+function formatToolOutputHtml(toolName, output) {
+  if (!output) return '';
+  const text = String(output);
+  const isDiff = /^[+\-@]|diff --git|---|\+\+\+/m.test(text) || 
+                 /edit|write|patch|replace/i.test(toolName || '');
+
+  if (isDiff) {
+    const lines = text.split('\n');
+    let html = '<div class="diff-card">';
+    html += '<div class="diff-header"><span>📄</span><span>File Modification Diff</span></div>';
+    html += '<div class="diff-body">';
+    for (const l of lines) {
+      if (l.startsWith('+') && !l.startsWith('+++')) {
+        html += `<div class="diff-line add">${esc(l)}</div>`;
+      } else if (l.startsWith('-') && !l.startsWith('---')) {
+        html += `<div class="diff-line del">${esc(l)}</div>`;
+      } else if (l.startsWith('@@') || l.startsWith('diff') || l.startsWith('---') || l.startsWith('+++')) {
+        html += `<div class="diff-line hunk">${esc(l)}</div>`;
+      } else {
+        html += `<div class="diff-line ctx">${esc(l)}</div>`;
+      }
+    }
+    html += '</div></div>';
+    return html;
+  }
+  return esc(text);
+}
+
 // ─── Pure Presenter API (Called by C# ConversationState) ─────────────────────
 window.gasAPI = {
 
@@ -581,7 +658,7 @@ window.gasAPI = {
           <span class="t-name">${esc(displayLabel)}</span>
           <span class="t-chip ${sc}">${sl}</span>
         </div>
-        <div class="tool-body">${esc(formattedOutput)}</div>`;
+        <div class="tool-body">${formatToolOutputHtml(toolName, formattedOutput)}</div>`;
       turnBody.appendChild(wrap);
       S.parts[toolID] = {type:'tool', el:wrap};
     } else {
@@ -589,7 +666,7 @@ window.gasAPI = {
       const chip = p.el.querySelector('.t-chip');
       const body = p.el.querySelector('.tool-body');
       if (chip) { chip.className = `t-chip ${statusClass(status)}`; chip.textContent = statusLabel(status); }
-      if (body) { body.textContent = formattedOutput; }
+      if (body) { body.innerHTML = formatToolOutputHtml(toolName, formattedOutput); }
     }
 
     scrollToBottom();
